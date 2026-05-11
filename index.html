@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <link rel="icon" href="icon.png" type="image/png">
     <title>Jazz Score Editor</title>
     <!-- ライブラリ -->
     <script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.2/dist/abcjs-basic-min.js"></script>
@@ -15,10 +17,29 @@
     <h3>Jazz Score Editor</h3>
 
     <details>
-        <summary>記法のヒント（備忘録）</summary>
+        <summary>記法リファレンス & サンプル集</summary>
         <div class="help-content">
-            <b>【基本】</b> <code>C D E F G A B c</code> / <code>^</code>(♯) <code>_</code>(♭) <code>=</code>(♮)<br>
-            <b>【ジャズ】</b> <code>(3</code> (3連符) / <code>v</code> (アップ) / <code>u</code> (ダウン) / <code>!>!</code> (アクセント)
+            <p><strong>📖 基本記法チートシート</strong></p>
+            <ul style="padding-left: 20px;">
+                <li>音高: <code>C D E</code> (低) / <code>c d e</code> (高)</li>
+                <li>長さ: <code>C2</code> (2倍) / <code>C/2</code> (半分) / <code>C3/2</code> (1.5倍)</li>
+                <li>休符: <code>z</code> (1拍) / <code>Z</code> (1小節)</li>
+                <li>和音: <code>[CEG]</code> (ドミソ)</li>
+                <li>装飾: <code>!accent!</code>, <code>!>!</code>, <code>!tenuto!</code></li>
+            </ul>
+
+            <p><strong>🎸 ジャズ・サンプル（タップで挿入）</strong></p>
+            <div class="sample-grid">
+                <button onclick="setSample('X:1\nM:4/4\nK:C\nL:1/8\n(3DEF (3GAB (3cBA (3GFE | C8 |')">3連符練習</button>
+                <button onclick="setSample('X:1\nM:4/4\nK:C\nL:1/8\n[CEGB]4 [DFAc]4 | [G B d f]8 |')">基本コード</button>
+                <button onclick="setSample('X:1\nM:4/4\nK:C\nL:1/8\nz G !>!A z z G !>!A z | G2 !>!A6 |')">裏打ちリズム</button>
+            </div>
+            <p><strong>🕒 テンポ・スタイル設定（タップで挿入）</strong></p>
+            <div class="sample-grid">
+                <button onclick="applySample('swing')">3連符練習</button>
+                <button onclick="applySample('basic_chord')">基本コード</button>
+                <button onclick="applySample('bossa')">Bossa Nova</button>
+            </div>
         </div>
     </details>
 

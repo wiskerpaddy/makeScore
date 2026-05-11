@@ -115,3 +115,22 @@ textarea {
     max-width: 100%;
     height: auto !important;
 }
+
+.sample-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.sample-grid button {
+    background: #ecf0f1;
+    color: #2c3e50;
+    border: 1px solid #bdc3c7;
+    font-size: 0.75rem;
+    padding: 8px;
+}
+
+.sample-grid button:hover {
+    background: #dbe0e2;
+}
