@@ -128,3 +128,60 @@ function applySample(key) {
         document.querySelector('details').open = false;
     }
 }
+
+async function saveAsImage() {
+    const svg = document.querySelector('#paper svg');
+    if (!svg) {
+        alert("保存する楽譜がありません。");
+        return;
+    }
+
+    // ファイル名（あなたのロジック）
+    const now = new Date();
+    const dateStr = now.getFullYear() +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        String(now.getDate()).padStart(2, '0') +
+        String(now.getHours()).padStart(2, '0') +
+        String(now.getMinutes()).padStart(2, '0') +
+        String(now.getSeconds()).padStart(2, '0');
+
+    // 1. SVG の viewBox を取得（論理サイズ）
+    const vb = svg.viewBox.baseVal;
+    const width = vb.width;
+    const height = vb.height;
+
+    const padding = 40;
+    const scale = 2;
+
+    // 2. Canvas を固定サイズで作成
+    const canvas = document.createElement('canvas');
+    canvas.width = (width + padding * 2) * scale;
+    canvas.height = (height + padding * 2) * scale;
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 3. SVG をクローンして viewBox を維持
+    const cloned = svg.cloneNode(true);
+    cloned.setAttribute("width", width);
+    cloned.setAttribute("height", height);
+
+    const svgData = new XMLSerializer().serializeToString(cloned);
+    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = function () {
+        ctx.drawImage(img, padding, padding);
+        URL.revokeObjectURL(url);
+
+        const link = document.createElement("a");
+        link.download = `score_${dateStr}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+    };
+    img.src = url;
+}

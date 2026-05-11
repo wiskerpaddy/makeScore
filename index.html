@@ -34,12 +34,6 @@
                 <button onclick="setSample('X:1\nM:4/4\nK:C\nL:1/8\n[CEGB]4 [DFAc]4 | [G B d f]8 |')">基本コード</button>
                 <button onclick="setSample('X:1\nM:4/4\nK:C\nL:1/8\nz G !>!A z z G !>!A z | G2 !>!A6 |')">裏打ちリズム</button>
             </div>
-            <p><strong>🕒 テンポ・スタイル設定（タップで挿入）</strong></p>
-            <div class="sample-grid">
-                <button onclick="applySample('swing')">3連符練習</button>
-                <button onclick="applySample('basic_chord')">基本コード</button>
-                <button onclick="applySample('bossa')">Bossa Nova</button>
-            </div>
         </div>
     </details>
 
@@ -59,6 +53,9 @@ C D E F G A B c |</textarea>
 
     <div id="paper"></div>
 </div>
+<div class="toolbar">
+    <button onclick="saveAsImage()" style="background: #27ae60;"> 画像保存 </button>
+</div>
 
 <!-- 外部JavaScript -->
 <script src="script.js"></script>
@@ -72,5 +69,6 @@ C D E F G A B c |</textarea>
         });
     }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </body>
 </html>
