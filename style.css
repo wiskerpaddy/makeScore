@@ -1,0 +1,117 @@
+:root {
+    --main-bg: #f8f9fa;
+    --accent: #2c3e50;
+    --danger: #e74c3c;
+    --white: #ffffff;
+}
+
+* {
+    box-sizing: border-box; /* サイズ計算を楽にする */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--main-bg);
+    padding: 10px; /* スマホでは余白を詰め気味に */
+    margin: 0;
+    color: #333;
+}
+
+.container {
+    max-width: 100%; /* スマホ画面いっぱいに使う */
+    margin: 0 auto;
+}
+
+h3 {
+    margin: 10px 0;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+/* ヘルプ（折りたたみ） */
+details {
+    background: var(--white);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+summary {
+    font-weight: bold;
+    cursor: pointer;
+    color: var(--accent);
+    outline: none;
+}
+
+.help-content {
+    font-size: 0.85rem;
+    margin-top: 10px;
+    line-height: 1.5;
+    background: #f1f3f5;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+/* ツールバー：スマホで押しやすいサイズに */
+.toolbar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap; /* 画面幅に合わせて折り返す */
+}
+
+button {
+    flex: 1 1 calc(33.333% - 6px); /* 3列で並べる設定 */
+    min-width: 80px;
+    padding: 12px 6px; /* タップ領域を広く(Appleの推奨は44px以上) */
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    transition: transform 0.1s;
+}
+
+button:active {
+    transform: scale(0.95); /* タップした感触を出す */
+    opacity: 0.8;
+}
+
+.btn-check {
+    background: var(--danger);
+}
+
+/* 入力エリア：スマホでの文字入力を快適に */
+textarea {
+    width: 100%;
+    height: 160px; /* キーボードが出ても隠れすぎない高さ */
+    font-size: 16px; /* iOSでフォーカス時にズームされないための最小サイズ */
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ced4da;
+    box-sizing: border-box;
+    font-family: 'Courier New', Courier, monospace;
+    resize: vertical; /* PCでは高さ調整可能に */
+    margin-bottom: 10px;
+}
+
+/* 楽譜表示エリア：ここが一番重要 */
+#paper {
+    background: var(--white);
+    border-radius: 10px;
+    padding: 10px;
+    margin-top: 5px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow-x: auto; /* 楽譜が長くなっても横スクロールで対応 */
+    min-height: 150px;
+}
+
+/* 楽譜内のSVGがはみ出さないように調整 */
+#paper svg {
+    max-width: 100%;
+    height: auto !important;
+}
