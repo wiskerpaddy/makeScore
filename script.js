@@ -248,3 +248,8 @@ function deleteLast() {
     }
     render();
 }
+
+function insertNuance(symbol) {
+    // スラー開始やアクセントは音符の直前に置くため、スペースなしで挿入
+    insertText(symbol);
+}
