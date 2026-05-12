@@ -37,28 +37,38 @@
         </div>
     </details>
 
-    <div class="toolbar">
-        <button onclick="insertText('(3')">(3連符</button>
-        <button onclick="insertText('!>!')">Accent</button>
-        <button onclick="insertText('v')">Up Bow</button>
-        <button onclick="insertText('u')">Down Bow</button>
-        <button onclick="checkRhythm()" class="btn-check">拍数チェック</button>
+    <div class="note-selector">
+        <div class="duration-picker">
+            <label><input type="radio" name="dur" value="2" checked> 4分</label>
+            <label><input type="radio" name="dur" value="" > 8分</label>
+            <label><input type="radio" name="dur" value="/2"> 16分</label>
+        </div>
+        
+        <div class="note-grid">
+            <button onclick="addNote('C')">ド</button>
+            <button onclick="addNote('D')">レ</button>
+            <button onclick="addNote('E')">ミ</button>
+            <button onclick="addNote('F')">ファ</button>
+            <button onclick="addNote('G')">ソ</button>
+            <button onclick="addNote('A')">ラ</button>
+            <button onclick="addNote('B')">シ</button>
+            <button onclick="addNote('c')">ド↑</button>
+            <button onclick="insertText('z')" style="background: #555;">休符</button>
+            <button onclick="insertText('|')" style="background: #555;">小節線</button>
+            <button onclick="deleteLast()" style="background: #e74c3c;">消去</button>
+            <button onclick="checkRhythm()" class="btn-check">拍数チェック</button>
+        </div>
     </div>
 
-    <textarea id="abc-input" spellcheck="false">X:1
-M:4/4
-K:C
-L:1/8
-% --- [ 譜面入力エリア ] ---
-C D E F G A B c |
-% -------------------------
-</textarea>
+    <div class="toolbar"></div>
 
-<div id="paper"></div>
-    <div class="save-area">
-        <button onclick="saveAsImage()" class="btn-save"> 楽譜を画像として保存 </button>
+    <textarea id="abc-input" spellcheck="false" inputmode="none" placeholder="ここに音符を追加してください"></textarea>
+
+    <div id="paper"></div>
+        <div class="save-area">
+            <button onclick="saveAsImage()" class="btn-save"> 楽譜を画像として保存 </button>
+        </div>
     </div>
-</div>
 
 <!-- 外部JavaScript -->
 <script src="script.js"></script>

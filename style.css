@@ -26,6 +26,7 @@ body {
 .container {
     max-width: 900px;
     margin: 0 auto;
+    padding: 5px; /* 余白を最小限に */
 }
 
 h3 {
@@ -35,6 +36,8 @@ h3 {
     letter-spacing: 2px;
     text-transform: uppercase;
     margin-bottom: 20px;
+    margin: 5px 0; /* タイトルの上下を詰める */
+    font-size: 1.1rem;
 }
 
 /* --- ヘルプ & サンプルエリア --- */
@@ -98,7 +101,7 @@ button:active { transform: scale(0.96); }
 /* --- 入力エリア --- */
 textarea {
     width: 100%;
-    height: 180px;
+    height: 100px;
     background: #000;
     color: #00ff41; /* エディタらしい緑 */
     border: 1px solid var(--brass);
@@ -135,14 +138,48 @@ button[onclick="saveAsImage()"] {
     background: var(--btn-save) !important;
     border: none;
     color: white;
-    padding: 18px;
+    padding: 12px;
     font-size: 1.1rem;
     margin: 10px auto;
     display: block;
     box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
     flex: none; /* ツールバーのflex挙動を無効化 */
+    margin-top: 8px;
 }
 
 button[onclick="saveAsImage()"]:hover {
     filter: brightness(1.1);
+}
+
+/* 音符セレクターのスタイル */
+.note-selector {
+    background: var(--card-bg);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid var(--brass);
+}
+
+.duration-picker {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+    background: rgba(0,0,0,0.3);
+    padding: 8px;
+    border-radius: 5px;
+}
+
+.note-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* 5列で配置 */
+    gap: 4px;
+}
+
+.note-grid button {
+    height: 44px;
+    background: var(--brass);
+    color: var(--bg-deep);
+    font-size: 1.1rem;
+    flex: none; /* 既存のtoolbar設定を上書き */
+    width: 100%;
 }
