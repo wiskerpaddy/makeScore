@@ -46,28 +46,35 @@ function addNote(noteName) {
 }
 
 /**
- * 簡易リズムチェック
+ * 拍数・小節チェック（ロジックの改善）
  */
-function checkRhythm() {
+function checkRhythm(isSilent = false) {
     const text = input.value;
     const lines = text.split('\n');
-    let measureLength = 8; // デフォルト 4/4
+    let measureLength = 8; 
 
     const mMatch = text.match(/M:(\d+)\/(\d+)/);
     if (mMatch) {
         measureLength = parseInt(mMatch[1]) * (8 / parseInt(mMatch[2]));
     }
 
+    // ★小節線の存在チェック
+    if (!text.includes('|')) {
+        const msg = "【確認】小節線（|）が見当たりません。長いフレーズの場合は小節線を入れると正確にチェックできます。";
+        if (!isSilent) alert(msg);
+        return { ok: false, msg: msg };
+    }
+
     let feedback = [];
     lines.forEach((line, index) => {
-        if (line.includes(':') || line.trim() === "") return;
+        if (line.includes(':') || line.trim() === "" || line.startsWith('%')) return;
 
         const measures = line.split('|');
         measures.forEach((m, i) => {
             const cleanM = m.replace(/\[.*?\]/g, "").trim();
-            if (cleanM === "" || i === measures.length - 1 && cleanM === "") return;
+            if (cleanM === "" || (i === measures.length - 1 && cleanM === "")) return;
 
-            const notes = cleanM.match(/([a-gA-G][0-9/]*)/g);
+            const notes = cleanM.match(/([a-gA-Gz][0-9/]*)/g); // 休符zもカウントに含める
             let count = 0;
             if (notes) {
                 notes.forEach(n => {
@@ -80,12 +87,22 @@ function checkRhythm() {
             }
 
             if (count > 0 && count !== measureLength) {
-                feedback.push(`${index + 1}行目 第${i + 1}小節: ${count}/${measureLength}拍`);
+                // 文言の調整：何拍足りない（多い）かを分かりやすく
+                const diff = count - measureLength;
+                const status = diff > 0 ? `${Math.abs(diff)}拍多い` : `${Math.abs(diff)}拍足りない`;
+                feedback.push(`${index + 1}行目・第${i + 1}小節: ${status} (${count}/${measureLength}拍)`);
             }
         });
     });
 
-    alert(feedback.length > 0 ? "【要確認】\n" + feedback.join('\n') : "リズムチェックOK！");
+    if (feedback.length > 0) {
+        const fullMsg = "【リズムのズレがあります】\n\n" + feedback.join('\n');
+        if (!isSilent) alert(fullMsg);
+        return { ok: false, msg: fullMsg };
+    }
+
+    if (!isSilent) alert("リズムチェックOK！完璧なスコアです。");
+    return { ok: true };
 }
 
 // イベントリスナー
@@ -150,12 +167,22 @@ function applySample(key) {
     }
 }
 
+/**
+ * 保存ボタン：実行前にチェックを強制する
+ */
 async function saveAsImage() {
-    const svg = document.querySelector('#paper svg');
-    if (!svg) {
-        alert("保存する楽譜がありません。");
-        return;
+    // 保存前にサイレントモードでチェックを実行
+    const result = checkRhythm(true); 
+    
+    if (!result.ok) {
+        if (!confirm(result.msg + "\n\nこのまま保存しますか？")) {
+            return; // キャンセルしたら保存処理を中断
+        }
     }
+
+    // --- 以下、既存の保存ロジック ---
+    const svg = document.querySelector('#paper svg');
+    if (!svg) return;
 
     // ファイル名（あなたのロジック）
     const now = new Date();
