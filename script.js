@@ -22,30 +22,17 @@ function render() {
  * テキストを入力エリアの適切な位置（基本は末尾）に挿入する
  */
 function insertText(text) {
-    const val = input.value;
-    
-    // カーソルがどこにあるか確認
     const start = input.selectionStart;
     const end = input.selectionEnd;
-
-    // もしカーソルが先頭（メタデータ部分）にあるか、何も選択されていない場合
-    // かつ、入力エリアのデリミタ（% --- [ 譜面入力エリア ] ---）がある場合
-    const footerMarker = "% -------------------------";
-    const markerIndex = val.indexOf(footerMarker);
-
-    if (start === 0 && markerIndex !== -1) {
-        // デリミタの直前に挿入する（最後尾に追加していく感覚）
-        input.value = val.substring(0, markerIndex) + text + val.substring(markerIndex);
-        const newPos = markerIndex + text.length;
-        input.setSelectionRange(newPos, newPos);
-    } else {
-        // カーソルが任意の位置にある場合は、その場に挿入
-        input.value = val.substring(0, start) + text + val.substring(end);
-        const newPos = start + text.length;
-        input.setSelectionRange(newPos, newPos);
-    }
+    const val = input.value;
+    
+    input.value = val.substring(0, start) + text + val.substring(end);
     
     input.focus();
+    const newPos = start + text.length;
+    input.setSelectionRange(newPos, newPos);
+    
+    // 記号を挿入した直後にも自動レンダリング
     render();
 }
 

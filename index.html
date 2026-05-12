@@ -63,15 +63,14 @@
             <button onclick="addNote('c\'')">ド↑↑</button>
         </div>
         <div class="note-selector">
-            <div class="nuance-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px;">
-                <button onclick="insertText('(')" style="background: #4a5568;">(スラー開始</button>
-                <button onclick="insertText(')')" style="background: #4a5568;">)スラー終了</button>
-                <button onclick="insertText('!>!')" style="background: #7d9e95;">アクセント</button>
-                <button onclick="insertText('!.!')" style="background: #7d9e95;">スタッカート</button>
-            </div>
             <div class="jazz-mode-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 8px;">
-                <button onclick="insertText('\'Swing\' ')" style="background: #d4af37; color: #000;">🎷 Swing (Doo-Bah)</button>
-                <button onclick="insertText('\'Straight\' ')" style="background: #2c3e50;">Straight</button>
+                <button onclick="insertText('!tenuto!')" style="background: #d4af37; color: #000;">🎷 Doo (Tenuto)</button>
+                <button onclick="insertText('!>!')" style="background: #e67e22; color: #fff;">🎺 Bah (Accent)</button>
+            </div>
+
+            <div class="style-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 8px;">
+                <button onclick="insertText('&quot;Swing&quot; ')" style="background: #2c3e50; color: white; font-size: 0.75rem;">Set Swing</button>
+                <button onclick="insertText('&quot;Straight&quot; ')" style="background: #2c3e50; color: white; font-size: 0.75rem;">Set Straight</button>
             </div>
             <div class="note-grid"></div>
             <div class="function-grid"></div>
