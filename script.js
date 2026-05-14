@@ -394,3 +394,11 @@ function insertMeasureLine() {
     // insertTextを呼び出すことで、カーソル位置の制御を共通化
     insertText(textToInsert);
 }
+
+/**
+ * スラーの開始・終了やタイを挿入する
+ */
+function insertArticulation(symbol) {
+    // スラーの開始「(」やタイ「-」は音符に密着させるため、スペースなしで挿入
+    insertText(symbol);
+}

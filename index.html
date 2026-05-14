@@ -30,8 +30,30 @@
     <h3>Jazz Score Editor</h3>
 
     <details>
-        <summary>サンプル集</summary>
+        <summary>各種書き方・サンプル集</summary>
         <div class="help-content">
+        <p><strong>📖 基本記法チートシート</strong></p>
+        <ul style="padding-left: 20px; list-style-type: none;">
+            <li style="margin-bottom: 15px;">
+                <strong>曲線で結ぶ（スラー）の書き方:</strong>
+                <ul style="list-style-type: disc; padding-left: 20px; margin-top: 5px; color: #ccc; font-size: 0.85rem;">
+                    <li><code>(</code> ボタンを押す</li>
+                    <li>音符をいくつか入れる（例：<code>C D E</code>）</li>
+                    <li><code>)</code> ボタンを押す</li>
+                    <li>結果：<code>(C D E)</code> となり、音符が曲線で結ばれます。</li>
+                </ul>
+            </li>
+
+            <li>
+                <strong>同じ音を繋ぐ（タイ）の書き方:</strong>
+                <ul style="list-style-type: disc; padding-left: 20px; margin-top: 5px; color: #ccc; font-size: 0.85rem;">
+                    <li>1つ目の音符を入れる（例：<code>G2</code>）</li>
+                    <li><code>-</code> ボタンを押す</li>
+                    <li>2つ目の音符を入れる（例：<code>G4</code>）</li>
+                    <li>結果：<code>G2-G4</code> となり、音が結合されます。</li>
+                </ul>
+            </li>
+        </ul>
         <p><strong>🎸 ジャズ・サンプル（タップで挿入）</strong></p>
         <div class="sample-grid">
             <button onclick="applySample('swing')">3連符練習</button>
@@ -85,7 +107,13 @@
             <button onclick="addNote('c\'')">ド↑↑</button>
         </div>
 
-        <div class="section-guide">③ ジャズのニュアンス（音符の直前に入れる）</div>
+        <div class="section-guide">③ ジャズのニュアンス・結合</div>
+        <div class="note-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 5px;">
+            <button onclick="insertArticulation('(')" style="background: #444;color: white;">( スラー始</button>
+            <button onclick="insertArticulation(')')" style="background: #444;color: white;">) スラー終</button>
+            <button onclick="insertArticulation('-')" style="background: #444;color: white;">タイ (-)</button>
+        </div>
+
         <div class="note-grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 5px;">
             <button onclick="insertText('!tenuto!')">🎷 Doo(テヌート)</button>
             <button onclick="insertText('!&gt;!')">🎺 Bah(アクセント)</button>
