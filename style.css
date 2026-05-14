@@ -1,4 +1,7 @@
-/* モダン・ダーク・ジャズ スタイル */
+/* ==========================================
+   モダン・ダーク・ジャズ スタイル
+   元のカラー・ブランドデザインを100死守
+   ========================================== */
 :root {
     --bg-deep: #121417;      /* 背景：深い夜 */
     --card-bg: #1e2227;      /* パネル背景 */
@@ -15,44 +18,37 @@
 * { box-sizing: border-box; }
 
 body {
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-deep);
+    background: var(--bg-deep); /* 漆黒の背景を維持 */
     color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 8px; /* スマホ用に縦幅を稼ぐ調整 */
     margin: 0;
-    padding: 15px;
-    line-height: 1.6;
 }
 
 .container {
     max-width: 900px;
     margin: 0 auto;
-    padding: 5px; /* 余白を最小限に */
+    padding: 0;
 }
 
 h3 {
-    text-align: center;
     color: var(--brass);
-    font-weight: 300;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-    margin: 5px 0; /* タイトルの上下を詰める */
-    font-size: 1.1rem;
+    margin: 2px 0 8px 0;
 }
 
-/* --- ヘルプ & サンプルエリア --- */
+/* --- ヘルプエリア --- */
 details {
     background: var(--card-bg);
     border: 1px solid rgba(212, 175, 55, 0.3);
     border-radius: 8px;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
-
 summary {
-    padding: 12px;
-    cursor: pointer;
+    padding: 8px 12px;
+    font-size: 0.85rem;
     color: var(--brass);
     font-weight: bold;
+    cursor: pointer;
 }
 
 .sample-grid {
@@ -62,7 +58,6 @@ summary {
     padding: 10px;
 }
 
-/* サンプル選択ボタン */
 .sample-grid button {
     background: var(--btn-sample) !important;
     border: 1px solid var(--brass) !important;
@@ -81,7 +76,7 @@ summary {
 button {
     flex: 1 1 calc(25% - 8px);
     padding: 14px 5px;
-    background: var(--btn-symbol); /* デフォルト：記号系 */
+    background: var(--btn-symbol);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
     border-radius: 8px;
@@ -92,7 +87,6 @@ button {
 
 button:active { transform: scale(0.96); }
 
-/* 拍数チェックボタンの区別 */
 .btn-check {
     background: var(--btn-check) !important;
     border: none !important;
@@ -113,7 +107,7 @@ textarea {
     outline: none;
 }
 
-/* --- 楽譜表示エリア（白背景・黒音符を死守） --- */
+/* --- 楽譜表示エリア --- */
 #paper {
     background: #ffffff !important;
     border-radius: 8px;
@@ -123,7 +117,6 @@ textarea {
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
 }
 
-/* 音符が薄くなるのを防ぐための強制黒塗り */
 #paper svg path, 
 #paper svg text,
 #paper svg rect {
@@ -131,7 +124,7 @@ textarea {
     stroke: #000000 !important;
 }
 
-/* --- 画像保存ボタン（コンテナ幅に合わせる） --- */
+/* --- 画像保存ボタン --- */
 button[onclick="saveAsImage()"] {
     width: 100%;
     max-width: 900px;
@@ -143,7 +136,7 @@ button[onclick="saveAsImage()"] {
     margin: 10px auto;
     display: block;
     box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-    flex: none; /* ツールバーのflex挙動を無効化 */
+    flex: none;
     margin-top: 8px;
 }
 
@@ -151,7 +144,7 @@ button[onclick="saveAsImage()"]:hover {
     filter: brightness(1.1);
 }
 
-/* 音符セレクターのスタイル */
+/* --- 音符セレクターのスタイル --- */
 .note-selector {
     background: var(--card-bg);
     padding: 10px;
@@ -171,7 +164,7 @@ button[onclick="saveAsImage()"]:hover {
 
 .note-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr); /* 5列で配置 */
+    grid-template-columns: repeat(5, 1fr);
     gap: 4px;
 }
 
@@ -180,44 +173,60 @@ button[onclick="saveAsImage()"]:hover {
     background: var(--brass);
     color: var(--bg-deep);
     font-size: 1.1rem;
-    flex: none; /* 既存のtoolbar設定を上書き */
+    flex: none;
     width: 100%;
 }
 
 .nuance-grid button,
 .jazz-mode-grid button {
-    height: 34px; /* 音符ボタンより少し低くしてスペースを節約 */
+    height: 34px;
     font-size: 0.75rem;
     border: none;
     border-radius: 4px;
 }
 
-/* スイングボタンを少し強調 */
 button[onclick*="Swing"] {
     font-weight: 800;
     box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
 }
 
-/* チュートリアル全体の背景（画面を覆う） */
+/* ==========================================
+   ★ 追加されたスマホ・チュートリアル用CSS ★
+   （元のデザインに影響を与えない独立コード）
+   ========================================== */
+
+/* 追加：新セクションガイドの見出しスタイル */
+.section-guide {
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    color: var(--brass); /* 元の真鍮ゴールドをそのまま使用して超見やすく！ */
+    border-left: 3px solid var(--brass); /* 左側にゴールドの縦線を入れてゾーニング */
+    padding-left: 6px;
+    margin: 14px 0 6px 2px;
+    display: block;
+}
+
+/* チュートリアルポップアップ背景 */
 .tutorial-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.85); /* 背後を暗くシールド */
+    background: rgba(0, 0, 0, 0.85); /* 背後をしっかりシールド */
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 9999; /* 最前面に配置 */
+    z-index: 9999;
     opacity: 1;
     transition: opacity 0.3s ease;
 }
 
-/* ポップアップカード本体 */
+/* ポップアップカード（ダークテーマ仕様） */
 .tutorial-card {
     background: #1a1a1a;
-    border: 2px solid #d4af37; /* ゴールドの枠線で高級感を出す */
+    border: 2px solid var(--brass); /* 枠線も真鍮ゴールドで統一 */
     border-radius: 12px;
     padding: 24px;
     max-width: 340px;
@@ -227,7 +236,7 @@ button[onclick*="Swing"] {
 }
 
 .tutorial-card h4 {
-    color: #d4af37;
+    color: var(--brass);
     margin: 0 0 8px 0;
     font-size: 1.1rem;
 }
@@ -238,7 +247,6 @@ button[onclick*="Swing"] {
     margin-bottom: 20px;
 }
 
-/* ステップのリスト */
 .tutorial-steps {
     text-align: left;
     margin-bottom: 24px;
@@ -252,10 +260,10 @@ button[onclick*="Swing"] {
     align-items: center;
 }
 
-/* ①②③④の数字丸デザイン */
+/* ステップの丸数字アイコン */
 .step-item span {
-    background: #d4af37;
-    color: #000;
+    background: var(--brass); /* 丸数字の背景も真鍮ゴールド */
+    color: var(--bg-deep);     /* 文字色は深い夜 */
     font-weight: bold;
     border-radius: 50%;
     width: 20px;
@@ -268,9 +276,9 @@ button[onclick*="Swing"] {
     flex-shrink: 0;
 }
 
-/* 閉じるボタン */
+/* チュートリアルを閉じるボタン */
 .btn-tutorial-close {
-    background: #27ae60;
+    background: var(--btn-save); /* 既存の「保存」と同じ緑で統一 */
     color: white;
     border: none;
     padding: 12px 0;
