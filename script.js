@@ -3,21 +3,73 @@ const input = document.getElementById('abc-input');
 // ★ヘッダー情報を分離して保持
 const ABC_HEADER = "X:1\nM:4/4\nK:C\nL:1/8\n";
 
+// 設定状態を管理
+let scoreSettings = {
+    meter: "4/4",
+    tempo: "130",
+    swing: true, // trueで"Swing"表示、falseで非表示(Straight)
+    key: "C"
+};
+
 /**
- * 挿入後に楽譜エリアを少しだけ見えるようにする（任意）
+ * 楽譜をレンダリングする
  */
 function render() {
-    const fullAbc = ABC_HEADER + input.value;
+    // スイング表記の構築
+    const swingText = scoreSettings.swing ? '"Swing"' : ""; 
+    
+    // ヘッダーを動的に生成
+    const dynamicHeader = `X:1\nM:${scoreSettings.meter}\nK:${scoreSettings.key}\nL:1/8\nQ:1/4=${scoreSettings.tempo} ${swingText}\n`;
+    
+    const fullAbc = dynamicHeader + input.value;
     ABCJS.renderAbc("paper", fullAbc, {
         responsive: "resize",
         add_classes: true
     });
+
+    // ★追加：Swingボタンの見た目を更新
+    const swingBtn = document.getElementById('swing-btn');
+    if (swingBtn) {
+        if (scoreSettings.swing) {
+            // ONの時：真鍮ゴールド（目立つ色）
+            swingBtn.style.background = "#d4af37";
+            swingBtn.style.color = "#121417";
+            swingBtn.innerText = "Swing: ON";
+        } else {
+            // OFFの時：暗いグレー
+            swingBtn.style.background = "#444";
+            swingBtn.style.color = "#fff";
+            swingBtn.innerText = "Swing: OFF";
+        }
+    }
+
+    // UIのテキスト更新（拍数やテンポも同期）
+    const meterDisplay = document.getElementById('ui-meter');
+    if (meterDisplay) meterDisplay.innerText = scoreSettings.meter;
     
-    // スマホ時、入力が重なってきたら楽譜エリアを視界に入れる
+    const tempoDisplay = document.getElementById('ui-tempo');
+    if (tempoDisplay) tempoDisplay.innerText = scoreSettings.tempo;
+    
     if (window.innerWidth < 600) {
         document.getElementById('paper').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
+/**
+ * 設定ボタンが押された時の処理
+ */
+function updateScoreSetting(key, value) {
+    if (key === 'swing') {
+        scoreSettings.swing = !scoreSettings.swing; // Swingボタンは押すたびにON/OFF
+    } else if (key === 'meter_custom' || key === 'tempo_custom') {
+        // 自由入力プロンプトを出す
+        const newVal = prompt(`${key === 'meter_custom' ? '拍数' : 'テンポ'}を入力してください`, value);
+        if (newVal) scoreSettings[key.split('_')[0]] = newVal;
+    } else {
+        scoreSettings[key] = value;
+    }
+    render(); // 楽譜を再描画
+}
+
 /**
  * テキストを入力エリアの適切な位置（基本は末尾）に挿入する
  */
@@ -46,27 +98,34 @@ function addNote(noteName) {
 }
 
 /**
- * 拍数・小節チェック（ロジックの改善）
+ * 最後の小節線を終止線（|]）に変換する
+ */
+function finalizeScore() {
+    let val = input.value.trim();
+    if (val.length === 0) return;
+
+    if (val.endsWith("|")) {
+        input.value = val.slice(0, -1) + "|]";
+    } else if (!val.endsWith("|]")) {
+        input.value = val + " |]";
+    }
+    render();
+}
+
+/**
+ * 拍数・小節チェック（3連符対応版）
  */
 function checkRhythm(isSilent = false) {
     const text = input.value;
     const lines = text.split('\n');
-    let measureLength = 8; 
-
-    const mMatch = text.match(/M:(\d+)\/(\d+)/);
-    if (mMatch) {
-        measureLength = parseInt(mMatch[1]) * (8 / parseInt(mMatch[2]));
-    }
-
-    // ★小節線の存在チェック
-    if (!text.includes('|')) {
-        const msg = "【確認】小節線（|）が見当たりません。長いフレーズの場合は小節線を入れると正確にチェックできます。";
-        if (!isSilent) alert(msg);
-        return { ok: false, msg: msg };
-    }
+    
+    // 現在の設定から1小節の長さを取得
+    const [num, den] = scoreSettings.meter.split('/').map(Number);
+    const measureLength = num * (8 / den); 
 
     let feedback = [];
     lines.forEach((line, index) => {
+        // ヘッダーや空行を除外
         if (line.includes(':') || line.trim() === "" || line.startsWith('%')) return;
 
         const measures = line.split('|');
@@ -74,34 +133,51 @@ function checkRhythm(isSilent = false) {
             const cleanM = m.replace(/\[.*?\]/g, "").trim();
             if (cleanM === "" || (i === measures.length - 1 && cleanM === "")) return;
 
-            const notes = cleanM.match(/([a-gA-Gz][0-9/]*)/g); // 休符zもカウントに含める
+            // ★ 修正：3連符(3と、通常の音符/休符を分けて取得
+            const tokens = cleanM.match(/(\(3|[a-gA-Gz][0-9/]*)/g);
             let count = 0;
-            if (notes) {
-                notes.forEach(n => {
-                    let val = 1;
-                    const numMatch = n.match(/\d+/);
+            let tupletCount = 0; // 3連符の残り音符数
+
+            if (tokens) {
+                tokens.forEach(t => {
+                    if (t === "(3") {
+                        tupletCount = 3; // 次の3つを3連符として扱う
+                        return;
+                    }
+
+                    let val = 1; // デフォルトL:1/8
+                    const numMatch = t.match(/\d+/);
                     if (numMatch) val = parseInt(numMatch[0]);
-                    if (n.includes('/')) val /= 2;
+                    if (t.includes('/')) val /= 2;
+
+                    // 3連符の中にある音符なら、長さを2/3にする
+                    if (tupletCount > 0) {
+                        val = val * (2 / 3);
+                        tupletCount--;
+                    }
                     count += val;
                 });
             }
 
-            if (count > 0 && count !== measureLength) {
-                // 文言の調整：何拍足りない（多い）かを分かりやすく
-                const diff = count - measureLength;
-                const status = diff > 0 ? `${Math.abs(diff)}拍多い` : `${Math.abs(diff)}拍足りない`;
-                feedback.push(`${index + 1}行目・第${i + 1}小節: ${status} (${count}/${measureLength}拍)`);
+            // 計算結果の判定（浮動小数点の誤差を考慮して0.01の余裕を持たせる）
+            if (count > 0 && Math.abs(count - measureLength) > 0.01) {
+                const diff = (count - measureLength).toFixed(1);
+                const status = diff > 0 ? `${diff}拍多い` : `${Math.abs(diff)}拍足りない`;
+                feedback.push(`${index + 1}行目・第${i + 1}小節: ${status} (${count}/${measureLength}個分)`);
             }
         });
     });
 
     if (feedback.length > 0) {
-        const fullMsg = "【リズムのズレがあります】\n\n" + feedback.join('\n');
+        const fullMsg = `【リズムのズレがあります（設定: ${scoreSettings.meter}）】\n\n` + feedback.join('\n');
         if (!isSilent) alert(fullMsg);
         return { ok: false, msg: fullMsg };
     }
 
-    if (!isSilent) alert("リズムチェックOK！完璧なスコアです。");
+    // 合格なら終止線を自動付与（前回の提案機能）
+    finalizeScore();
+    
+    if (!isSilent) alert(`リズムチェックOK！（${scoreSettings.meter}）`);
     return { ok: true };
 }
 
@@ -130,38 +206,38 @@ function insertTempo(bpm, label) {
 
 // サンプルの実体データ
 const SAMPLES = {
-    swing: `X:1
-M:4/4
-K:C
-L:1/8
-(3DEF (3GAB (3cBA (3GFE | C8 |`,
-
-    basic_chord: `X:1
-M:4/4
-K:C
-L:1/8
-[CEGB]4 [DFAc]4 | [G B d f]8 |`,
-
-    bossa: `X:1
-M:4/4
-K:C
-L:1/8
-Q:1/4=120 "Bossa Nova"
-[CEGB]2 [CEGB]2 z [CEGB]3 |`
+    // ヘッダーを除去し、音符と小節線だけに絞る
+    swing: `(3DEF (3GAB (3cBA (3GFE | C8 |]`,
+    basic_chord: `[CEGB]4 [DFAc]4 | [G B d f]8 |]`,
+    bossa: `[CEGB]2 [CEGB]2 z [CEGB]3 | [DFAc]8 |]`
 };
 
 /**
  * 名前を指定してサンプルを適用する
  */
 function applySample(key) {
-    const abc = SAMPLES[key];
-    if (!abc) return;
+    const notes = SAMPLES[key];
+    if (!notes) return;
 
     if (confirm("入力欄の内容が上書きされます。よろしいですか？")) {
-        const input = document.getElementById('abc-input');
-        input.value = abc.trim();
-        // render関数は既存のものを使用
+        // サンプルに合わせて設定を強制同期（これでリズムチェックが通るようになる）
+        if (key === 'bossa') {
+            scoreSettings.meter = "4/4";
+            scoreSettings.tempo = "120";
+            scoreSettings.swing = false; // ボサノバはStraight
+        } else {
+            scoreSettings.meter = "4/4";
+            scoreSettings.tempo = "130";
+            scoreSettings.swing = true;
+        }
+
+        // 入力欄を更新し、小節カウントもリセット
+        input.value = notes;
+        measureCount = 0; 
+        
+        // 全体を再描画
         render();
+        
         // ヘルプを閉じる
         document.querySelector('details').open = false;
     }
@@ -171,6 +247,11 @@ function applySample(key) {
  * 保存ボタン：実行前にチェックを強制する
  */
 async function saveAsImage() {
+    const rawValue = input.value.trim();
+    if (rawValue === "") {
+        alert("保存する音符が入力されていません。");
+        return;
+    }
     // 保存前にサイレントモードでチェックを実行
     const result = checkRhythm(true); 
     
@@ -294,4 +375,22 @@ function closeTutorial() {
     }
     // ブラウザに「もう見たよ」というフラグを保存
     localStorage.setItem("hasSeenJazzTutorial", "true");
+}
+
+// 小節数をカウントする変数
+let measureCount = 0;
+
+/**
+ * 小節線を挿入し、4小節ごとに自動改行する
+ */
+function insertMeasureLine() {
+    measureCount++;
+    let textToInsert = "| ";
+    
+    if (measureCount % 4 === 0) {
+        textToInsert = "|\n";
+    }
+    
+    // insertTextを呼び出すことで、カーソル位置の制御を共通化
+    insertText(textToInsert);
 }

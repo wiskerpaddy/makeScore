@@ -30,28 +30,34 @@
     <h3>Jazz Score Editor</h3>
 
     <details>
-        <summary>記法リファレンス & サンプル集</summary>
+        <summary>サンプル集</summary>
         <div class="help-content">
-            <p><strong>📖 基本記法チートシート</strong></p>
-            <ul style="padding-left: 20px;">
-                <li>音高: <code>C D E</code> (低) / <code>c d e</code> (高)</li>
-                <li>長さ: <code>C2</code> (2倍) / <code>C/2</code> (半分) / <code>C3/2</code> (1.5倍)</li>
-                <li>休符: <code>z</code> (1拍) / <code>Z</code> (1小節)</li>
-                <li>和音: <code>[CEG]</code> (ドミソ)</li>
-                <li>装飾: <code>!accent!</code>, <code>!&gt;!</code>, <code>!tenuto!</code></li>
-            </ul>
-
-            <p><strong>🎸 ジャズ・サンプル（タップで挿入）</strong></p>
-            <div class="sample-grid">
-                <button onclick="setSample('(3DEF (3GAB (3cBA (3GFE | C8 |')">3連符練習</button>
-                <button onclick="setSample('[CEGB]4 [DFAc]4 | [G B d f]8 |')">基本コード</button>
-                <button onclick="setSample('G !&gt;!A z z G !&gt;!A z | G2 !&gt;!A6 |')">裏打ちリズム</button>
-            </div>
+        <p><strong>🎸 ジャズ・サンプル（タップで挿入）</strong></p>
+        <div class="sample-grid">
+            <button onclick="applySample('swing')">3連符練習</button>
+            <button onclick="applySample('basic_chord')">基本コード</button>
+            <!-- <button onclick="applySample('bossa')">ボサノバ風</button> -->
+        </div>
         </div>
     </details>
 
     <div class="note-selector">
-        
+        <div class="section-guide">【新規】基本設定（タップで詳細入力）</div>
+        <div class="note-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 10px;">
+            <button onclick="updateScoreSetting('meter_custom', scoreSettings.meter)" style="background: #444;">
+                拍: <span id="ui-meter">4/4</span>
+            </button>
+            
+            <button onclick="updateScoreSetting('tempo_custom', scoreSettings.tempo)" style="background: #444;">
+                ♩=<span id="ui-tempo">130</span>
+            </button>
+            
+            <button id="swing-btn" onclick="updateScoreSetting('swing')" style="transition: 0.3s;">
+                Swing
+            </button>
+
+            <button onclick="insertMeasureLine()" style="background: #555; color: white;">小節線</button>
+        </div>
         <div class="section-guide">① 音の長さを選ぶ</div>
         <div class="duration-picker">
             <label><input type="radio" name="dur" value="2" checked> 4分</label>
@@ -81,10 +87,10 @@
 
         <div class="section-guide">③ ジャズのニュアンス（音符の直前に入れる）</div>
         <div class="note-grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 5px;">
-            <button onclick="insertText('!tenuto!')">🎷 Doo</button>
-            <button onclick="insertText('!&gt;!')">🎺 Bah</button>
-            <button onclick="insertText('&quot;Swing&quot; ')">Swing</button>
-            <button onclick="insertText('&quot;Straight&quot; ')">Straight</button>
+            <button onclick="insertText('!tenuto!')">🎷 Doo(テヌート)</button>
+            <button onclick="insertText('!&gt;!')">🎺 Bah(アクセント)</button>
+            <!-- <button onclick="insertText('&quot;Swing&quot; ')">Swing</button>
+            <button onclick="insertText('&quot;Straight&quot; ')">Straight</button> -->
         </div>
 
         <div class="section-guide">④ 楽譜の編集・確認</div>
