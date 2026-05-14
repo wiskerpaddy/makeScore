@@ -267,3 +267,31 @@ function insertNuance(symbol) {
     // スラー開始やアクセントは音符の直前に置くため、スペースなしで挿入
     insertText(symbol);
 }
+
+/**
+ * ページ読み込み時にチュートリアルの表示判定を行う
+ */
+document.addEventListener("DOMContentLoaded", () => {
+    const hasSeenTutorial = localStorage.getItem("hasSeenJazzTutorial");
+    const overlay = document.getElementById("tutorial-overlay");
+    
+    if (hasSeenTutorial) {
+        // すでに見たことがある場合は最初から非表示にする
+        if (overlay) overlay.style.display = "none";
+    }
+});
+
+/**
+ * チュートリアルを閉じて、次回から出ないように記憶する
+ */
+function closeTutorial() {
+    const overlay = document.getElementById("tutorial-overlay");
+    if (overlay) {
+        overlay.style.opacity = "0";
+        setTimeout(() => {
+            overlay.style.display = "none";
+        }, 300); // フェードアウト後に完全に消す
+    }
+    // ブラウザに「もう見たよ」というフラグを保存
+    localStorage.setItem("hasSeenJazzTutorial", "true");
+}

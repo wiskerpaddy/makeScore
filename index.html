@@ -12,7 +12,21 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="tutorial-overlay" class="tutorial-overlay">
+    <div class="tutorial-card">
+        <h4>🎷 Jazz Score Editor へようこそ！</h4>
+        <p class="tutorial-subtitle">4つのステップで直感的にジャズ譜を作れます</p>
+        
+        <div class="tutorial-steps">
+            <div class="step-item"><span>①</span> 音の長さを選択する</div>
+            <div class="step-item"><span>②</span> 音符・休符をタップして配置</div>
+            <div class="step-item"><span>③</span> Doo / Bah でジャズのニュアンスを足す</div>
+            <div class="step-item"><span>④</span> リズムを確認して画像として保存</div>
+        </div>
 
+        <button onclick="closeTutorial()" class="btn-tutorial-close">OK、さっそく使う！</button>
+    </div>
+</div>
 <div class="container">
     <h3>Jazz Score Editor</h3>
 
@@ -30,20 +44,21 @@
 
             <p><strong>🎸 ジャズ・サンプル（タップで挿入）</strong></p>
             <div class="sample-grid">
-                <button onclick="setSample('X:1\nM:4/4\nK:C\nL:1/8\n(3DEF (3GAB (3cBA (3GFE | C8 |')">3連符練習</button>
-                <button onclick="setSample('X:1\nM:4/4\nK:C\nL:1/8\n[CEGB]4 [DFAc]4 | [G B d f]8 |')">基本コード</button>
-                <button onclick="setSample('X:1\nM:4/4\nK:C\nL:1/8\nz G !>!A z z G !>!A z | G2 !>!A6 |')">裏打ちリズム</button>
+                <button onclick="setSample('(3DEF (3GAB (3cBA (3GFE | C8 |')">3連符練習</button>
+                <button onclick="setSample('[CEGB]4 [DFAc]4 | [G B d f]8 |')">基本コード</button>
+                <button onclick="setSample('G !>!A z z G !>!A z | G2 !>!A6 |')">裏打ちリズム</button>
             </div>
         </div>
     </details>
 
     <div class="note-selector">
+        <div class="section-guide" style="font-size: 0.75rem; color: white; margin: 5px 0 2px 2px;">① 音の長さを選ぶ</div>
         <div class="duration-picker">
             <label><input type="radio" name="dur" value="2" checked> 4分</label>
             <label><input type="radio" name="dur" value="" > 8分</label>
             <label><input type="radio" name="dur" value="/2"> 16分</label>
         </div>
-        
+        <div class="section-guide" style="font-size: 0.75rem; color: white; margin: 8px 0 2px 2px;">② 音符を入れる（2オクターブ）</div>
         <div class="note-grid">
             <button onclick="addNote('C')">ド</button>
             <button onclick="addNote('D')">レ</button>
@@ -62,30 +77,25 @@
             <button onclick="addNote('b')">シ↑</button>
             <button onclick="addNote('c\'')">ド↑↑</button>
         </div>
-        <div class="note-selector">
-            <div class="jazz-mode-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 8px;">
-                <button onclick="insertText('!tenuto!')" style="background: #d4af37; color: #000;">🎷 Doo (Tenuto)</button>
-                <button onclick="insertText('!>!')" style="background: #e67e22; color: #fff;">🎺 Bah (Accent)</button>
-            </div>
-
-            <div class="style-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 8px;">
-                <button onclick="insertText('&quot;Swing&quot; ')" style="background: #2c3e50; color: white; font-size: 0.75rem;">Set Swing</button>
-                <button onclick="insertText('&quot;Straight&quot; ')" style="background: #2c3e50; color: white; font-size: 0.75rem;">Set Straight</button>
-            </div>
-            <div class="note-grid"></div>
-            <div class="function-grid"></div>
-        </div>
-
+        <div class="section-guide" style="font-size: 0.75rem; color: white; margin: 8px 0 2px 2px;">④ 楽譜の編集・確認</div>
         <div class="function-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 5px;">
             <button onclick="insertText('z ')" style="background: #555;">休符</button>
             <button onclick="insertText('| ')" style="background: #555;">小節線</button>
             <button onclick="deleteLast()" style="background: #e74c3c;">消去</button>
             <button onclick="checkRhythm()" class="btn-check" style="background: #555;">リズム確認</button>
         </div>
+        <div class="section-guide" style="font-size: 0.75rem; color: white; margin: 8px 0 2px 2px;">③ ジャズのニュアンス（音符の直前に入れる）</div>
+        <div class="function-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 5px;">
+            <button onclick="insertText('!tenuto!')" style="background: #d4af37; color: #000;">🎷 Doo (Tenuto)</button>
+            <button onclick="insertText('!>!')" style="background: #e67e22; color: #fff;">🎺 Bah (Accent)</button>
+            <button onclick="insertText('&quot;Swing&quot; ')" style="background: #2c3e50; color: white; font-size: 0.75rem;">Set Swing</button>
+            <button onclick="insertText('&quot;Straight&quot; ')" style="background: #2c3e50; color: white; font-size: 0.75rem;">Set Straight</button>
+        </div>
     </div>
 
     <div class="toolbar"></div>
 
+    <div class="section-guide" style="font-size: 0.75rem; color: white; margin: 5px 0 2px 2px;">ABCテキストコード入力欄</div>
     <textarea id="abc-input" spellcheck="false" inputmode="none" placeholder="ここに音符を追加してください"></textarea>
 
     <div id="paper"></div>

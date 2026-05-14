@@ -197,3 +197,91 @@ button[onclick*="Swing"] {
     font-weight: 800;
     box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
 }
+
+/* チュートリアル全体の背景（画面を覆う） */
+.tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85); /* 背後を暗くシールド */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* 最前面に配置 */
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+/* ポップアップカード本体 */
+.tutorial-card {
+    background: #1a1a1a;
+    border: 2px solid #d4af37; /* ゴールドの枠線で高級感を出す */
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 340px;
+    width: 85%;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.tutorial-card h4 {
+    color: #d4af37;
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+}
+
+.tutorial-subtitle {
+    color: #ccc;
+    font-size: 0.75rem;
+    margin-bottom: 20px;
+}
+
+/* ステップのリスト */
+.tutorial-steps {
+    text-align: left;
+    margin-bottom: 24px;
+}
+
+.step-item {
+    color: #fff;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+}
+
+/* ①②③④の数字丸デザイン */
+.step-item span {
+    background: #d4af37;
+    color: #000;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 10px;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+/* 閉じるボタン */
+.btn-tutorial-close {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 12px 0;
+    width: 100%;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+.btn-tutorial-close:active {
+    transform: scale(0.98);
+}
