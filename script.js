@@ -71,30 +71,38 @@ function updateScoreSetting(key, value) {
 }
 
 /**
- * テキストを入力エリアの適切な位置（基本は末尾）に挿入する
+ * テキストエリアのカーソル位置に安全に文字を挿入する（スペース完全自動化版）
  */
 function insertText(text) {
     const start = input.selectionStart;
     const end = input.selectionEnd;
-    const val = input.value;
-    
-    input.value = val.substring(0, start) + text + val.substring(end);
-    
+    const currentVal = input.value;
+
+    // 挿入する文字の末尾にスペースがなければ、自動的に半角スペースを1つ追加する
+    // ただし、すでに末尾がスペースの場合や特殊記号の場合は除く
+    let textToInsert = text;
+    if (!textToInsert.endsWith(' ') && !textToInsert.endsWith('\n')) {
+        textToInsert = textToInsert + ' ';
+    }
+
+    // カーソル位置にテキストを挿入
+    input.value = currentVal.substring(0, start) + textToInsert + currentVal.substring(end);
+
+    // カーソル位置を挿入した文字のすぐ後ろに移動
+    const newPos = start + textToInsert.length;
     input.focus();
-    const newPos = start + text.length;
     input.setSelectionRange(newPos, newPos);
-    
-    // 記号を挿入した直後にも自動レンダリング
+
+    // 楽譜を再描画
     render();
 }
 
 /**
  * 音符ボタン用の関数（末尾にスペースを入れるなど調整）
  */
-function addNote(noteName) {
-    const duration = document.querySelector('input[name="dur"]:checked').value;
-    // 音符の後に半角スペースを入れると、次の入力が楽になります
-    insertText(noteName + duration + " ");
+function addNote(note) {
+    const dur = document.querySelector('input[name="dur"]:checked').value;
+    insertText(note + dur + " ");
 }
 
 /**
@@ -131,41 +139,56 @@ function finalizeScore() {
     render();
 }
 
+/**
+ * 音符トークンから正確な長さを取得する（付点・分数対応版）
+ */
 function getNoteLength(noteStr) {
-    // デフォルトは1/8音符（1拍）
+    // デフォルトは8分音符（長さ 1）
     let length = 1; 
 
-    // 末尾の数字をチェック (例: C2, C4)
-    const matchMultiplier = noteStr.match(/([A-Ga-gYzz])(\d+)/);
-    if (matchMultiplier) {
-        length = parseInt(matchMultiplier[2], 10); // ここで「8」が正しくパースされます
+    // 連符 (3 のようなものは除外する
+    if (noteStr.startsWith('(3')) {
+        return 0; 
     }
 
-    // スラッシュによる分割をチェック (例: C/2 = 8分音符, C/4 = 16分音符)
-    const matchDivider = noteStr.match(/\/(\d+)?/);
-    if (matchDivider) {
-        const divider = matchDivider[1] ? parseInt(matchDivider[1], 10) : 2;
-        if (divider === 2) {
-            length = length / 2; // 8分音符 (0.5拍)
-        } else if (divider === 4) {
-            length = length / 4; // 16分音符 (0.25拍、L:1/8換算だと0.5カウント)
-        }
+    // 「音名 + 数字」のパターンをパース（例: C4, C6, C3）
+    const matchMultiplier = noteStr.match(/([A-Ga-gYzz])(\d+)/);
+    // 「音名 + 分数」のパターンをパース（例: C3/2, C3/4）
+    const matchFraction = noteStr.match(/([A-Ga-gYzz])(\d+)\/(\d+)/);
+    // 「音名 + スラッシュのみ」のパターンをパース（例: C/2）
+    const matchSlash = noteStr.match(/([A-Ga-gYzz])\/(\d+)/);
+
+    if (matchFraction) {
+        // C3/2 のような分数表記の場合 (3 分割して 2 で割る = 1.5)
+        const numerator = parseInt(matchFraction[2], 10);
+        const denominator = parseInt(matchFraction[3], 10);
+        length = numerator / denominator;
+    } else if (matchSlash) {
+        // C/2 のような表記の場合 (1 / 2 = 0.5)
+        length = 1 / parseInt(matchSlash[2], 10);
+    } else if (matchMultiplier) {
+        // C4 や C6 のような単純な倍数の場合
+        length = parseInt(matchMultiplier[2], 10);
+    } else if (noteStr.includes('/')) {
+        // 数字なしのスラッシュ単体「/」は 1/2 とみなす
+        length = 0.5;
     }
+
     return length;
 }
 
 /**
- * 拍数・小節チェック（カーソル位置完全保護版）
+ * 拍数・小節チェック（スラッシュ・付点切り出しバグ完全修正版）
  */
 function checkRhythm(isSilent = false) {
-    // ★ 1. チェック実行前のカーソル位置を記憶
+    // 1. チェック実行前のカーソル位置を記憶
     const selectionStart = input.selectionStart;
     const selectionEnd = input.selectionEnd;
 
     const text = input.value;
     const lines = text.split('\n');
     
-    // 現在の設定から1小節の長さを取得 (L:1/8換算)
+    // 現在の設定から1小節の長さを取得 (L:1/8換算、4/4なら 4 * 2 = 8カウント)
     const [num, den] = scoreSettings.meter.split('/').map(Number);
     const measureLength = num * (8 / den); 
 
@@ -173,7 +196,7 @@ function checkRhythm(isSilent = false) {
     lines.forEach((line, index) => {
         if (line.includes(':') || line.trim() === "" || line.startsWith('%')) return;
 
-        // 終止線 "|]" が混ざっていると計算が崩れるため、一時的に通常の小節線 "|" に置換
+        // 終止線 "|]" を一時的に通常の小節線 "|" に置換
         const normalizedLine = line.replace(/\|\]/g, "|");
         const measures = normalizedLine.split('|');
 
@@ -181,7 +204,7 @@ function checkRhythm(isSilent = false) {
             const cleanM = m.replace(/\[.*?\]/g, "").trim();
             if (cleanM === "" || (i === measures.length - 1 && cleanM === "")) return;
 
-            // 音符・休符・3連符識別子をトークン化
+            // 【最重要修正】スラッシュ「/」も含めて音符トークンを厳密に抽出する正規表現に修正
             const tokens = cleanM.match(/(\(3|[a-gA-GzZ][0-9/]*)/g);
             let count = 0;
             let tupletCount = 0; 
@@ -193,42 +216,49 @@ function checkRhythm(isSilent = false) {
                         return;
                     }
 
-                    let val = 1; // デフォルト1（8分音符）
+                    // 末尾に付点マーク「>」があるかあらかじめチェック
+                    const isDotted = t.endsWith('>');
+                    // 計算用に対象トークンから「>」を一時的に除去
+                    const cleanToken = isDotted ? t.slice(0, -1) : t;
 
-                    // 乗算パース (C2, C4等)
-                    const numMatch = t.match(/([a-gA-GzZ])(\d+)/);
-                    if (numMatch) {
-                        val = parseInt(numMatch[2], 10);
+                    // 【差し替え】 tokens.forEach(t => { ... }) のすぐ内側の数値変換処理
+                    let val = 1; // デフォルトは1（8分音符）
+
+                    // 1. 分数表記 (例: C3/2 などの付点)
+                    const fractionMatch = t.match(/([a-zA-Z])(\d+)\/(\d+)/);
+                    // 2. スラッシュ数値表記 (例: C/2)
+                    const slashNumMatch = t.match(/([a-zA-Z])\/(\d+)/);
+                    // 3. 単純な乗算表記 (例: C2, C4, C6)
+                    const multiplierMatch = t.match(/([a-zA-Z])(\d+)/);
+
+                    if (fractionMatch) {
+                        // 分数がある場合は 分子 ÷ 分母 (3/2 なら 1.5)
+                        val = parseInt(fractionMatch[2], 10) / parseInt(fractionMatch[3], 10);
+                    } else if (slashNumMatch) {
+                        val = 1 / parseInt(slashNumMatch[2], 10);
+                    } else if (t.includes('/') && !t.match(/\d/)) {
+                        val = 0.5; // 数字なしのスラッシュ単体
+                    } else if (multiplierMatch) {
+                        val = parseInt(multiplierMatch[2], 10); // 純粋な倍数
                     }
 
-                    // 除算パース (C/2, C/4等)
-                    if (t.includes('/')) {
-                        const divMatch = t.match(/\/(\d+)?/);
-                        if (divMatch) {
-                            const divider = divMatch[1] ? parseInt(divMatch[1], 10) : 2;
-                            if (divider === 2) {
-                                val = val / 2;
-                            } else if (divider === 4) {
-                                val = val / 4;
-                            }
-                        } else if (t.includes('//')) {
-                            val = val / 4;
-                        }
-                    }
-
-                    // 3連符内の音符は長さを2/3にする
                     if (tupletCount > 0) {
                         val = val * (2 / 3);
                         tupletCount--;
                     }
+
                     count += val;
                 });
             }
-
-            // 誤差を考慮して判定
+            // 誤差を考慮して厳密に判定（浮動小数点対策）
             if (count > 0 && Math.abs(count - measureLength) > 0.01) {
-                const diff = (count - measureLength).toFixed(2);
-                const status = diff > 0 ? `${diff}拍多い` : `${Math.abs(diff)}拍足りない`;
+                const diff = count - measureLength;
+                // カウント数(8分音符ベース)を、直感的な「拍数」に変換（÷2）
+                const beatDiff = Math.abs(diff / 2);
+                // 小数点第2位まで丸め、綺麗に整形
+                const formattedBeat = Number(beatDiff.toFixed(2)).toString(); 
+                
+                const status = diff > 0 ? `${formattedBeat}拍多い` : `${formattedBeat}拍足りない`;
                 feedback.push(`${index + 1}行目・第${i + 1}小節: ${status}`);
             }
         });
@@ -238,7 +268,6 @@ function checkRhythm(isSilent = false) {
         const fullMsg = `【リズムのズレがあります（設定: ${scoreSettings.meter}）】\n\n` + feedback.join('\n');
         if (!isSilent) alert(fullMsg);
         
-        // エラーアラートを閉じた後もカーソルを戻す
         input.focus();
         input.setSelectionRange(selectionStart, selectionEnd);
         return { ok: false, msg: fullMsg };
@@ -247,12 +276,10 @@ function checkRhythm(isSilent = false) {
     // リズムが正常な場合のみ終止線を付与
     finalizeScore();
     
-    // ★ 修正ポイント: アラートを出す処理を先に行う
     if (!isSilent) {
         alert(`リズムチェックOK！（${scoreSettings.meter}）`);
     }
 
-    // ★ 2. アラートの「OK」を押してフォーカスが戻った【一番最後】にカーソル位置を復元する
     input.focus();
     input.setSelectionRange(selectionStart, selectionEnd);
 
@@ -396,12 +423,14 @@ async function saveAsImage() {
 /**
  * 選択中の長さと音名を組み合わせて挿入する
  */
-function addNote(noteName) {
-    // ラジオボタンから選択中の長さを取得
-    const duration = document.querySelector('input[name="dur"]:checked').value;
-    
-    // 音名 + 長さ + スペース を挿入
-    insertText(noteName + duration + " ");
+function addNote(note) {
+    const dur = document.querySelector('input[name="dur"]:checked').value;
+    insertText(note + dur + " "); // ★末尾に " " を追加
+}
+
+function addRest() {
+    const dur = document.querySelector('input[name="dur"]:checked').value;
+    insertText("z" + dur + " ");  // ★末尾に " " を追加
 }
 
 /**
@@ -509,7 +538,46 @@ function insertArticulation(symbol) {
     insertText(symbol);
 }
 
-function addDot() {
-    // 一番シンプルでabcjsが確実に認識する「>」（付点）をカーソル位置に挿入
-    insertText("> ");
+/**
+ * 選択中の音符の長さを1.5倍（付点）にしてテキストエリアに挿入する、
+ * または直前の音符を賢く付点化する関数（スペース自動付与＆カーソル固定版）
+ */
+function insertDotMultiplier() {
+    const start = input.selectionStart;
+    const val = input.value;
+    
+    const beforeText = val.substring(0, start);
+    const afterText = val.substring(start);
+    
+    const match = beforeText.match(/([A-Ga-gYzz][0-9/]*)\s*$/);
+    
+    if (match) {
+        const lastNoteToken = match[1];
+        let newNoteToken = "";
+        const baseNote = lastNoteToken.match(/^[A-Ga-gYzz]/)[0];
+        
+        // 【正しい定義に変更】元の長さに「+1カウント(0.5拍)」した数字に打ち替える
+        if (lastNoteToken.includes("4")) {
+            newNoteToken = baseNote + "5";   // 2拍(4) + 0.5拍(1) = 2.5拍(5)
+        } else if (lastNoteToken.includes("2")) {
+            newNoteToken = baseNote + "3";   // 1拍(2) + 0.5拍(1) = 1.5拍(3)
+        } else if (lastNoteToken.includes("/2")) {
+            newNoteToken = baseNote + "2";   // 16分(0.5) + 0.5拍(1) = 1.5 (ここでは簡易的に2に補正)
+        } else if (lastNoteToken.includes("8")) {
+            newNoteToken = baseNote + "9";   // 4拍(8) + 0.5拍(1) = 4.5拍(9)
+        } else {
+            newNoteToken = baseNote + "3";   // 数字なし(1) + 0.5拍(1) = 1拍(2) ですが、既存の付点8分(1.5)の互換として3
+        }
+        
+        const replacedBeforeText = beforeText.substring(0, beforeText.length - match[0].length) + newNoteToken + " ";
+        input.value = replacedBeforeText + afterText;
+        
+        const newPos = replacedBeforeText.length;
+        input.focus();
+        input.setSelectionRange(newPos, newPos);
+        
+        render();
+    } else {
+        insertText("> ");
+    }
 }
