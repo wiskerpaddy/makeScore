@@ -293,3 +293,32 @@ button[onclick*="Swing"] {
 .btn-tutorial-close:active {
     transform: scale(0.98);
 }
+
+/* ==========================================
+   スマートフォン向けのレイアウト微調整（追記）
+   ========================================== */
+@media (max-width: 480px) {
+    /* ③ ジャズのニュアンスボタン：スマホでは2列×2行にして文字を確実に収める */
+    .section-guide:nth-of-type(5) + .note-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+    }
+
+    /* ④ 楽譜の編集ボタン：2つしかないので、綺麗に 1:1 で並ぶように修正 */
+    .section-guide:nth-of-type(6) + .note-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+    }
+
+    /* スマホの時だけボタンの文字サイズと余白を最適化して見切れを防ぐ */
+    .note-grid button {
+        font-size: 0.9rem !important; /* 少しだけ小さくして1行に収める */
+        padding: 10px 2px !important;  /* 縦のパディングを少し削ってコンパクトに */
+        height: auto !important;       /* 高さをコンテンツに合わせる */
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;           /* ボタン内での意図しない自動改行を禁止 */
+    }
+}
