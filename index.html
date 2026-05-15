@@ -53,6 +53,14 @@
                     <li>結果：<code>G2-G4</code> となり、音が結合されます。</li>
                 </ul>
             </li>
+            <li>
+                <strong>シャープ（♯）、フラット（♭）、ナチュラル（♮）の臨時記号の書き方:</strong>
+                <ul style="list-style-type: disc; padding-left: 20px; margin-top: 5px; color: #ccc; font-size: 0.85rem;">
+                    <li>シャープ（♯）を入れる（例：<code>^</code>）</li>
+                    <li><code>ド</code> ボタンを押す</li>
+                    <li>結果：<code>^C = ド#</code> となり、音が結合されます。</li>
+                </ul>
+            </li>
         </ul>
         <p><strong>🎸 ジャズ・サンプル（タップで挿入）</strong></p>
         <div class="sample-grid">
@@ -107,13 +115,24 @@
             <button onclick="addNote('c\'')">ド↑↑</button>
         </div>
 
-        <div class="section-guide">③ ジャズのニュアンス・結合</div>
+        <div class="note-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 5px;">
+            <button onclick="insertText('z ')" style="background: #e74c3c; color: white;">休符</button>
+            <button onclick="insertText('| ')" style="background: #e74c3c; color: white;">小節線</button>
+        </div>
+        
+        <div class="note-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 5px;">
+            <button onclick="insertNuance('^')" class="btn-func" style="background: #444;color: white;">♯ シャープ (^)</button>
+            <button onclick="insertNuance('_')" class="btn-func" style="background: #444;color: white;">♭ フラット (_)</button>
+            <button onclick="insertNuance('=')" class="btn-func" style="background: #444;color: white;">♮ ナチュラル (=)</button>
+        </div>
+
         <div class="note-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 5px;">
             <button onclick="insertArticulation('(')" style="background: #444;color: white;">( スラー始</button>
             <button onclick="insertArticulation(')')" style="background: #444;color: white;">) スラー終</button>
             <button onclick="insertArticulation('-')" style="background: #444;color: white;">タイ (-)</button>
         </div>
 
+        <div class="section-guide">③ ジャズのニュアンス・結合</div>
         <div class="note-grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 5px;">
             <button onclick="insertText('!tenuto!')">🎷 Doo(テヌート)</button>
             <button onclick="insertText('!&gt;!')">🎺 Bah(アクセント)</button>
@@ -123,10 +142,8 @@
 
         <div class="section-guide">④ 楽譜の編集・確認</div>
         <div class="note-grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 5px;">
-            <button onclick="insertText('z ')" style="background: #555; color: white;">休符</button>
-            <button onclick="insertText('| ')" style="background: #555; color: white;">小節線</button>
             <button onclick="deleteLast()" style="background: #e74c3c; color: white;">消去</button>
-            <button onclick="checkRhythm()" class="btn-check">チェック</button>
+            <button onclick="checkRhythm()" class="btn-check" style="background: #e74c3c; color: white;">チェック</button>
         </div>
     </div>
 
