@@ -138,7 +138,7 @@ function getNoteLength(noteStr) {
     // 末尾の数字をチェック (例: C2, C4)
     const matchMultiplier = noteStr.match(/([A-Ga-gYzz])(\d+)/);
     if (matchMultiplier) {
-        length = parseInt(matchMultiplier[2], 10);
+        length = parseInt(matchMultiplier[2], 10); // ここで「8」が正しくパースされます
     }
 
     // スラッシュによる分割をチェック (例: C/2 = 8分音符, C/4 = 16分音符)
@@ -507,4 +507,9 @@ function insertMeasureLine() {
 function insertArticulation(symbol) {
     // スラーの開始「(」やタイ「-」は音符に密着させるため、スペースなしで挿入
     insertText(symbol);
+}
+
+function addDot() {
+    // 一番シンプルでabcjsが確実に認識する「>」（付点）をカーソル位置に挿入
+    insertText("> ");
 }

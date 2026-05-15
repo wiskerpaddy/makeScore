@@ -90,6 +90,8 @@
         </div>
         <div class="section-guide">① 音の長さを選ぶ</div>
         <div class="duration-picker">
+            <label><input type="radio" name="dur" value="8"> 全音</label>
+            <label><input type="radio" name="dur" value="4"> 2分</label>
             <label><input type="radio" name="dur" value="2" checked> 4分</label>
             <label><input type="radio" name="dur" value="" > 8分</label>
             <label><input type="radio" name="dur" value="/2"> 16分</label>
@@ -124,6 +126,10 @@
             <button onclick="insertNuance('^')" class="btn-func" style="background: #444;color: white;">♯ シャープ (^)</button>
             <button onclick="insertNuance('_')" class="btn-func" style="background: #444;color: white;">♭ フラット (_)</button>
             <button onclick="insertNuance('=')" class="btn-func" style="background: #444;color: white;">♮ ナチュラル (=)</button>
+        </div>
+
+        <div class="note-grid" style="grid-template-columns: repeat(1, 1fr); margin-top: 5px;">
+            <button onclick="addDot()" style="background: #555; color: white;">. 付点 (1.5倍)</button>
         </div>
 
         <div class="note-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 5px;">
