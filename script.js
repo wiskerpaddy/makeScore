@@ -7,7 +7,7 @@ const ABC_HEADER = "X:1\nM:4/4\nK:C\nL:1/8\n";
 let scoreSettings = {
     meter: "4/4",
     tempo: "130",
-    swing: true, // trueで"Swing"表示、falseで非表示(Straight)
+    swing: false, // trueで"Swing"表示、falseで非表示(Straight)
     key: "C"
 };
 
@@ -101,56 +101,122 @@ function addNote(noteName) {
  * 最後の小節線を終止線（|]）に変換する
  */
 function finalizeScore() {
-    let val = input.value.trim();
-    if (val.length === 0) return;
+    let val = input.value; // トリムすると文字数がズレてカーソル位置が狂うためそのまま扱う
+    if (val.trim().length === 0) return;
 
-    if (val.endsWith("|")) {
-        input.value = val.slice(0, -1) + "|]";
-    } else if (!val.endsWith("|]")) {
-        input.value = val + " |]";
+    // ★ 1. 書き換え前のカーソル位置を記憶
+    const selectionStart = input.selectionStart;
+    const selectionEnd = input.selectionEnd;
+
+    // 文字列のどこかに残ってしまった古い終止線 "|]" をすべて通常の小節線 "|" に戻す
+    let newVal = val.replace(/\|\]/g, "|");
+
+    // 末尾のスペースや改行を考慮し、実質的な末尾が "|" で終わっているか判定
+    const trimmed = newVal.trimEnd();
+    if (trimmed.endsWith("|")) {
+        // 末尾の "|" を "|]" に置換（元の末尾の改行やスペースは維持する）
+        const lastPipeIndex = newVal.lastIndexOf('|');
+        newVal = newVal.substring(0, lastPipeIndex) + "|]" + newVal.substring(lastPipeIndex + 1);
+    } else if (!trimmed.endsWith("|]")) {
+        // 小節線が何もなければ末尾に足す
+        newVal = newVal.trimEnd() + " |]";
     }
+    
+    // ★ 2. テキストエリアの値を更新（ここでカーソルが一度先頭に飛びます）
+    input.value = newVal;
+    
+    // ★ 3. 記憶していたカーソル位置を完全に復元
+    input.setSelectionRange(selectionStart, selectionEnd);
+    
     render();
 }
 
+function getNoteLength(noteStr) {
+    // デフォルトは1/8音符（1拍）
+    let length = 1; 
+
+    // 末尾の数字をチェック (例: C2, C4)
+    const matchMultiplier = noteStr.match(/([A-Ga-gYzz])(\d+)/);
+    if (matchMultiplier) {
+        length = parseInt(matchMultiplier[2], 10);
+    }
+
+    // スラッシュによる分割をチェック (例: C/2 = 8分音符, C/4 = 16分音符)
+    const matchDivider = noteStr.match(/\/(\d+)?/);
+    if (matchDivider) {
+        const divider = matchDivider[1] ? parseInt(matchDivider[1], 10) : 2;
+        if (divider === 2) {
+            length = length / 2; // 8分音符 (0.5拍)
+        } else if (divider === 4) {
+            length = length / 4; // 16分音符 (0.25拍、L:1/8換算だと0.5カウント)
+        }
+    }
+    return length;
+}
+
 /**
- * 拍数・小節チェック（3連符対応版）
+ * 拍数・小節チェック（カーソル位置完全保護版）
  */
 function checkRhythm(isSilent = false) {
+    // ★ 1. チェック実行前のカーソル位置を記憶
+    const selectionStart = input.selectionStart;
+    const selectionEnd = input.selectionEnd;
+
     const text = input.value;
     const lines = text.split('\n');
     
-    // 現在の設定から1小節の長さを取得
+    // 現在の設定から1小節の長さを取得 (L:1/8換算)
     const [num, den] = scoreSettings.meter.split('/').map(Number);
     const measureLength = num * (8 / den); 
 
     let feedback = [];
     lines.forEach((line, index) => {
-        // ヘッダーや空行を除外
         if (line.includes(':') || line.trim() === "" || line.startsWith('%')) return;
 
-        const measures = line.split('|');
+        // 終止線 "|]" が混ざっていると計算が崩れるため、一時的に通常の小節線 "|" に置換
+        const normalizedLine = line.replace(/\|\]/g, "|");
+        const measures = normalizedLine.split('|');
+
         measures.forEach((m, i) => {
             const cleanM = m.replace(/\[.*?\]/g, "").trim();
             if (cleanM === "" || (i === measures.length - 1 && cleanM === "")) return;
 
-            // ★ 修正：3連符(3と、通常の音符/休符を分けて取得
-            const tokens = cleanM.match(/(\(3|[a-gA-Gz][0-9/]*)/g);
+            // 音符・休符・3連符識別子をトークン化
+            const tokens = cleanM.match(/(\(3|[a-gA-GzZ][0-9/]*)/g);
             let count = 0;
-            let tupletCount = 0; // 3連符の残り音符数
+            let tupletCount = 0; 
 
             if (tokens) {
                 tokens.forEach(t => {
                     if (t === "(3") {
-                        tupletCount = 3; // 次の3つを3連符として扱う
+                        tupletCount = 3; 
                         return;
                     }
 
-                    let val = 1; // デフォルトL:1/8
-                    const numMatch = t.match(/\d+/);
-                    if (numMatch) val = parseInt(numMatch[0]);
-                    if (t.includes('/')) val /= 2;
+                    let val = 1; // デフォルト1（8分音符）
 
-                    // 3連符の中にある音符なら、長さを2/3にする
+                    // 乗算パース (C2, C4等)
+                    const numMatch = t.match(/([a-gA-GzZ])(\d+)/);
+                    if (numMatch) {
+                        val = parseInt(numMatch[2], 10);
+                    }
+
+                    // 除算パース (C/2, C/4等)
+                    if (t.includes('/')) {
+                        const divMatch = t.match(/\/(\d+)?/);
+                        if (divMatch) {
+                            const divider = divMatch[1] ? parseInt(divMatch[1], 10) : 2;
+                            if (divider === 2) {
+                                val = val / 2;
+                            } else if (divider === 4) {
+                                val = val / 4;
+                            }
+                        } else if (t.includes('//')) {
+                            val = val / 4;
+                        }
+                    }
+
+                    // 3連符内の音符は長さを2/3にする
                     if (tupletCount > 0) {
                         val = val * (2 / 3);
                         tupletCount--;
@@ -159,11 +225,11 @@ function checkRhythm(isSilent = false) {
                 });
             }
 
-            // 計算結果の判定（浮動小数点の誤差を考慮して0.01の余裕を持たせる）
+            // 誤差を考慮して判定
             if (count > 0 && Math.abs(count - measureLength) > 0.01) {
-                const diff = (count - measureLength).toFixed(1);
+                const diff = (count - measureLength).toFixed(2);
                 const status = diff > 0 ? `${diff}拍多い` : `${Math.abs(diff)}拍足りない`;
-                feedback.push(`${index + 1}行目・第${i + 1}小節: ${status} (${count}/${measureLength}個分)`);
+                feedback.push(`${index + 1}行目・第${i + 1}小節: ${status}`);
             }
         });
     });
@@ -171,13 +237,25 @@ function checkRhythm(isSilent = false) {
     if (feedback.length > 0) {
         const fullMsg = `【リズムのズレがあります（設定: ${scoreSettings.meter}）】\n\n` + feedback.join('\n');
         if (!isSilent) alert(fullMsg);
+        
+        // エラーアラートを閉じた後もカーソルを戻す
+        input.focus();
+        input.setSelectionRange(selectionStart, selectionEnd);
         return { ok: false, msg: fullMsg };
     }
 
-    // 合格なら終止線を自動付与（前回の提案機能）
+    // リズムが正常な場合のみ終止線を付与
     finalizeScore();
     
-    if (!isSilent) alert(`リズムチェックOK！（${scoreSettings.meter}）`);
+    // ★ 修正ポイント: アラートを出す処理を先に行う
+    if (!isSilent) {
+        alert(`リズムチェックOK！（${scoreSettings.meter}）`);
+    }
+
+    // ★ 2. アラートの「OK」を押してフォーカスが戻った【一番最後】にカーソル位置を復元する
+    input.focus();
+    input.setSelectionRange(selectionStart, selectionEnd);
+
     return { ok: true };
 }
 
@@ -327,20 +405,38 @@ function addNote(noteName) {
 }
 
 /**
- * 消去ボタン：最後の一文字（または一塊）を消す
+ * 消去ボタン：末尾のトークンまたは小節線を安全に削除（カーソル位置完全保持版）
  */
 function deleteLast() {
-    let val = input.value.trimEnd();
+    let val = input.value;
     if (val.length === 0) return;
 
-    // スペースで区切られた最後の要素を消去する
-    const lastSpace = val.lastIndexOf(" ");
-    if (lastSpace !== -1) {
-        input.value = val.substring(0, lastSpace + 1);
+    // ★ 1. 実行前のカーソル位置を記憶
+    const selectionStart = input.selectionStart;
+    const selectionEnd = input.selectionEnd;
+
+    // 削除前のトリム状態を取得
+    let trimmed = val.trimEnd();
+
+    // ★ 終止線（|]）で終わっている場合は、まとめて削除できるように調整
+    if (trimmed.endsWith("|]")) {
+        // 末尾の "|]" をごっそり削除
+        val = trimmed.slice(0, -2);
     } else {
-        // スペースがない場合は一文字消す
-        input.value = val.slice(0, -1);
+        // 通常の1文字消去（またはスペースを考慮した消去）
+        val = val.substring(0, val.length - 1);
     }
+
+    // ★ 2. テキストエリアを更新（ここでカーソルが先頭に飛ぶ）
+    input.value = val;
+
+    // ★ 3. 削除された文字数を計算し、カーソル位置を正しくスライドさせて復元
+    // 基本は元の位置を維持ですが、末尾を消した場合はみ出さないように調整
+    const newCursorPos = Math.min(selectionStart, val.length);
+    
+    input.focus();
+    input.setSelectionRange(newCursorPos, newCursorPos);
+
     render();
 }
 
@@ -384,14 +480,24 @@ let measureCount = 0;
  * 小節線を挿入し、4小節ごとに自動改行する
  */
 function insertMeasureLine() {
-    measureCount++;
+    // 終止線 |] を一時的に除外して純粋な小節線だけにする
+    const cleanText = input.value.replace(/\|\]/g, "");
+    
+    // 改行で区切り、ユーザーが現在入力している「最後の行」を取り出す
+    const lines = cleanText.split('\n');
+    const currentLine = lines[lines.length - 1] || "";
+
+    // 現在の行にある小節線「|」の数をカウント
+    const currentMatches = currentLine.match(/\|/g);
+    const currentCount = currentMatches ? currentMatches.length : 0;
+
     let textToInsert = "| ";
     
-    if (measureCount % 4 === 0) {
+    // 現在の行の小節線が3つ（次が4つ目）の時に改行を入れる
+    if ((currentCount + 1) % 4 === 0) {
         textToInsert = "|\n";
     }
     
-    // insertTextを呼び出すことで、カーソル位置の制御を共通化
     insertText(textToInsert);
 }
 
