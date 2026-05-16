@@ -13,6 +13,7 @@
     --btn-check: #a93226;    /* 拍数チェック：警告の赤 */
     --btn-save: #27ae60;     /* 保存：成功の緑 */
     --btn-sample: #2c3e50;   /* サンプル：深い紺 */
+    --btn-save-midi: #0256f1;     /* 保存：成功の緑 */
 }
 
 * { box-sizing: border-box; }
@@ -141,6 +142,26 @@ button[onclick="saveAsImage()"] {
 }
 
 button[onclick="saveAsImage()"]:hover {
+    filter: brightness(1.1);
+}
+
+/* --- 画像保存ボタン --- */
+button[onclick="saveAsMidi()"] {
+    width: 100%;
+    max-width: 900px;
+    background: var(--btn-save-midi) !important;
+    border: none;
+    color: white;
+    padding: 12px;
+    font-size: 1.1rem;
+    margin: 10px auto;
+    display: block;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+    flex: none;
+    margin-top: 8px;
+}
+
+button[onclick="saveAsMidi()"]:hover {
     filter: brightness(1.1);
 }
 

@@ -1,3 +1,4 @@
+let currentAbcText = "";
 const input = document.getElementById('abc-input');
 
 // ★ヘッダー情報を分離して保持
@@ -11,8 +12,10 @@ let scoreSettings = {
     key: "C"
 };
 
+let currentVisualObj = null;
+
 /**
- * 楽譜をレンダリングする
+ * 楽譜をレンダリングする（完全合体版：元の処理は一切削っていません）
  */
 function render() {
     // スイング表記の構築
@@ -22,12 +25,19 @@ function render() {
     const dynamicHeader = `X:1\nM:${scoreSettings.meter}\nK:${scoreSettings.key}\nL:1/8\nQ:1/4=${scoreSettings.tempo} ${swingText}\n`;
     
     const fullAbc = dynamicHeader + input.value;
-    ABCJS.renderAbc("paper", fullAbc, {
+    
+    // ★【ここを修正】描画結果（配列）を変数 result に一度受け取ります
+    const result = ABCJS.renderAbc("paper", fullAbc, {
         responsive: "resize",
         add_classes: true
     });
 
-    // ★追加：Swingボタンの見た目を更新
+    // ★【新しく追加】画面描画が成功していれば、その楽譜データをセーブしておく
+    if (result && result.length > 0) {
+        currentVisualObj = result[0];
+    }
+
+    // --- 以下、元々あったUI更新やボタンの見た目の処理を寸分違わぬまま100%継続 ---
     const swingBtn = document.getElementById('swing-btn');
     if (swingBtn) {
         if (scoreSettings.swing) {
@@ -54,6 +64,7 @@ function render() {
         document.getElementById('paper').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
+
 /**
  * 設定ボタンが押された時の処理
  */
@@ -713,4 +724,96 @@ function autoInsertMeasureLines(rawText) {
     });
 
     return processedLines.join('\n');
+}
+
+// 既存の描画処理を行っている場所
+function updateScore() {
+    const abcText = document.getElementById('abc-input').value; // 実際のIDに合わせてください
+    currentAbcText = abcText; // グローバル変数に保存
+
+    // 既存の楽譜描画
+    ABCJS.renderAbc("notation", abcText, { /* オプション */ });
+}
+
+/**
+ * MIDI保存ボタン（HTML文字列パース修正版）
+ */
+function saveAsMidi() {
+    const rawValue = input.value.trim();
+    if (rawValue === "") {
+        alert("保存する音符が入力されていません。");
+        return;
+    }
+
+    // 保存前にサイレントモードでチェックを実行
+    const result = checkRhythm(true); 
+    
+    if (!result.ok) {
+        if (!confirm(result.msg + "\n\nこのまま保存しますか？")) {
+            return; 
+        }
+    }
+
+    try {
+        const now = new Date();
+        const dateStr = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+
+        const swingText = scoreSettings.swing ? '"Swing"' : ""; 
+        const fullAbcText = `X:1\nM:${scoreSettings.meter}\nK:${scoreSettings.key}\nL:1/8\nQ:1/4=${scoreSettings.tempo}${swingText ? " " + swingText : ""}\n${rawValue}`;
+        
+        const visualObjArray = ABCJS.parseOnly(fullAbcText);
+        if (!visualObjArray || visualObjArray.length === 0) {
+            throw new Error("楽譜データの解析に失敗しました。");
+        }
+        const visualObj = visualObjArray[0];
+
+        // 1. MIDI要素（HTML文字列またはDOM）を取得
+        const midiResult = ABCJS.synth.getMidiFile(fullAbcText, {
+            visualObj: visualObj
+        });
+
+        // 配列で返ってきた場合は最初の要素を取り出す
+        let midiTarget = Array.isArray(midiResult) ? midiResult[0] : midiResult;
+        let midiDataUrl = "";
+
+        if (midiTarget) {
+            // もしオブジェクト形式で midi や href がある場合の保険
+            if (typeof midiTarget === "object" && (midiTarget.midi || midiTarget.href)) {
+                midiDataUrl = midiTarget.midi || midiTarget.href;
+            } else {
+                // 文字列（HTML）またはDOM要素の場合、文字列に変換して href="..." の中身を抽出
+                const htmlString = typeof midiTarget === "string" ? midiTarget : (midiTarget.outerHTML || "");
+                
+                // href="〜" の中身を抜き出す正規表現
+                const match = htmlString.match(/href=["'](data:audio\/midi[^"']*)["']/);
+                if (match && match[1]) {
+                    // HTMLエンコードされた「&amp;」などがあればデコード
+                    midiDataUrl = match[1].replace(/&amp;/g, '&');
+                }
+            }
+        }
+
+        if (!midiDataUrl) {
+            throw new Error("MIDIデータの抽出に失敗しました。URLが見つかりません。");
+        }
+
+        // 2. 仮想リンクを作成して自動ダウンロード
+        const link = document.createElement("a");
+        link.download = `score_${dateStr}.mid`;
+        link.href = midiDataUrl;
+        document.body.appendChild(link);
+        link.click();
+        
+        // 後片付け
+        document.body.removeChild(link);
+        
+    } catch (error) {
+        console.error("MIDI生成の内部エラー:", error);
+        alert("MIDIファイルの生成中にエラーが発生しました。\n" + error.message);
+    }
 }
