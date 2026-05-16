@@ -178,7 +178,7 @@ function getNoteLength(noteStr) {
 }
 
 /**
- * 拍数・小節チェック（スラッシュ・付点切り出しバグ完全修正版）
+ * 拍数・小節チェック（オクターブ・付点・臨時記号バリデーション完全修正版）
  */
 function checkRhythm(isSilent = false) {
     // 1. チェック実行前のカーソル位置を記憶
@@ -204,8 +204,8 @@ function checkRhythm(isSilent = false) {
             const cleanM = m.replace(/\[.*?\]/g, "").trim();
             if (cleanM === "" || (i === measures.length - 1 && cleanM === "")) return;
 
-            // 【最重要修正】スラッシュ「/」も含めて音符トークンを厳密に抽出する正規表現に修正
-            const tokens = cleanM.match(/(\(3|[a-gA-GzZ][0-9/]*)/g);
+            // 【修正】臨時記号、オクターブ記号、末尾の付点 > までを1つのトークンとして厳密に抽出
+            const tokens = cleanM.match(/(\(3|[\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?)/g);
             let count = 0;
             let tupletCount = 0; 
 
@@ -216,40 +216,44 @@ function checkRhythm(isSilent = false) {
                         return;
                     }
 
-                    // 末尾に付点マーク「>」があるかあらかじめチェック
+                    // 末尾に付点マーク「>」があるかチェック
                     const isDotted = t.endsWith('>');
                     // 計算用に対象トークンから「>」を一時的に除去
                     const cleanToken = isDotted ? t.slice(0, -1) : t;
 
-                    // 【差し替え】 tokens.forEach(t => { ... }) のすぐ内側の数値変換処理
-                    let val = 1; // デフォルトは1（8分音符）
+                    let val = 1; // デフォルト（数字なしは8分音符 ＝ 1カウント）
 
-                    // 1. 分数表記 (例: C3/2 などの付点)
-                    const fractionMatch = t.match(/([a-zA-Z])(\d+)\/(\d+)/);
-                    // 2. スラッシュ数値表記 (例: C/2)
-                    const slashNumMatch = t.match(/([a-zA-Z])\/(\d+)/);
-                    // 3. 単純な乗算表記 (例: C2, C4, C6)
-                    const multiplierMatch = t.match(/([a-zA-Z])(\d+)/);
+                    // 【修正】正規表現の定義を最初に行い、オクターブ記号等があっても数字を抜けるように修正
+                    const fractionMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)\/(\d+)/); // 例: C3/2
+                    const slashNumMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*\/(\d+)/);     // 例: C/2
+                    const multiplierMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)/);    // 例: C2
 
+                    // 【修正】正しい順序で安全にパース評価
                     if (fractionMatch) {
-                        // 分数がある場合は 分子 ÷ 分母 (3/2 なら 1.5)
-                        val = parseInt(fractionMatch[2], 10) / parseInt(fractionMatch[3], 10);
+                        val = parseInt(fractionMatch[1], 10) / parseInt(fractionMatch[2], 10);
                     } else if (slashNumMatch) {
-                        val = 1 / parseInt(slashNumMatch[2], 10);
-                    } else if (t.includes('/') && !t.match(/\d/)) {
-                        val = 0.5; // 数字なしのスラッシュ単体
+                        val = 1 / parseInt(slashNumMatch[1], 10);
+                    } else if (cleanToken.includes('/') && !cleanToken.match(/\d/)) {
+                        val = 0.5; // 数字なしのスラッシュ単体「/」は 0.5
                     } else if (multiplierMatch) {
-                        val = parseInt(multiplierMatch[2], 10); // 純粋な倍数
+                        val = parseInt(multiplierMatch[1], 10);
                     }
 
+                    // 付点マーク「>」があれば長さを1.5倍にする
+                    if (isDotted) {
+                        val = val * 1.5;
+                    }
+
+                    // 連符（3連符）の処理
                     if (tupletCount > 0) {
                         val = val * (2 / 3);
                         tupletCount--;
                     }
-
+                    
                     count += val;
                 });
             }
+
             // 誤差を考慮して厳密に判定（浮動小数点対策）
             if (count > 0 && Math.abs(count - measureLength) > 0.01) {
                 const diff = count - measureLength;
@@ -579,5 +583,85 @@ function insertDotMultiplier() {
         render();
     } else {
         insertText("> ");
+    }
+}
+
+/**
+ * 手動改行ボタン用の関数（リズムがOKなら自動で小節線を補完して改行）
+ */
+function insertNewLine() {
+    const start = input.selectionStart;
+    const val = input.value;
+    
+    // 1. カーソルより前にあるテキストを取得
+    const beforeText = val.substring(0, start);
+    
+    // 2. カーソルがある「現在の行」を取得
+    const lines = beforeText.split('\n');
+    const currentLine = lines[lines.length - 1] || "";
+    
+    // 3. 終止線などを考慮しつつ、最後の小節線「|」で分割
+    const normalizedLine = currentLine.replace(/\|\]/g, "|");
+    const measures = normalizedLine.split('|');
+    
+    // 現在入力中の未完了の小節テキストを取り出す
+    const cleanM = measures[measures.length - 1].replace(/\[.*?\]/g, "").trim();
+    
+    // 4. 現在の設定から1小節の基準長さを取得 (L:1/8換算、4/4なら 8カウント)
+    const [num, den] = scoreSettings.meter.split('/').map(Number);
+    const measureLength = num * (8 / den); 
+    
+    let count = 0;
+    
+    // 空でない場合のみ、直前の小節の拍数を計算
+    if (cleanM !== "") {
+        const tokens = cleanM.match(/(\(3|[\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?)/g);
+        let tupletCount = 0; 
+        
+        if (tokens) {
+            tokens.forEach(t => {
+                if (t === "(3") {
+                    tupletCount = 3; 
+                    return;
+                }
+                const isDotted = t.endsWith('>');
+                const cleanToken = isDotted ? t.slice(0, -1) : t;
+                let noteVal = 1;
+                
+                const fractionMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)\/(\d+)/);
+                const slashNumMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*\/(\d+)/);
+                const multiplierMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)/);
+                
+                if (fractionMatch) {
+                    noteVal = parseInt(fractionMatch[1], 10) / parseInt(fractionMatch[2], 10);
+                } else if (slashNumMatch) {
+                    noteVal = 1 / parseInt(slashNumMatch[1], 10);
+                } else if (cleanToken.includes('/') && !cleanToken.match(/\d/)) {
+                    noteVal = 0.5;
+                } else if (multiplierMatch) {
+                    noteVal = parseInt(multiplierMatch[1], 10);
+                }
+                
+                if (isDotted) {
+                    noteVal = noteVal * 1.5;
+                }
+                
+                if (tupletCount > 0) {
+                    noteVal = noteVal * (2 / 3);
+                    tupletCount--;
+                }
+                
+                count += noteVal;
+            });
+        }
+    }
+    
+    // 5. 誤差を考慮してぴったり1小節分あるか判定（浮動小数点対策）
+    if (count > 0 && Math.abs(count - measureLength) <= 0.01) {
+        // リズムがジャストなので、小節線を補完して改行
+        insertText("|\n");
+    } else {
+        // リズムが足りない、または既に小節線がある場合は通常の改行のみ
+        insertText("\n");
     }
 }
