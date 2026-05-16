@@ -178,9 +178,17 @@ function getNoteLength(noteStr) {
 }
 
 /**
- * 拍数・小節チェック（共通関数化リファクタリング版）
+ * 拍数・小節チェック（実行時に小節線を自動補完するバージョン）
  */
 function checkRhythm(isSilent = false) {
+    // 1. まず現在の入力内容を元に、自動で小節線を補完したテキストを作る
+    const autoFormattedText = autoInsertMeasureLines(input.value);
+    
+    // 入力欄の値を自動補完後のものに書き換えて描画を同期
+    input.value = autoFormattedText;
+    render();
+
+    // 2. チェック実行前のカーソル位置を記憶
     const selectionStart = input.selectionStart;
     const selectionEnd = input.selectionEnd;
 
@@ -201,10 +209,9 @@ function checkRhythm(isSilent = false) {
             const cleanM = m.replace(/\[.*?\]/g, "").trim();
             if (cleanM === "" || (i === measures.length - 1 && cleanM === "")) return;
 
-            // ★ 共通関数を使って1小節の長さを取得
+            // 共通関数を使って1小節の長さを取得
             const count = parseMeasureLength(cleanM);
 
-            // 誤差を考慮して厳密に判定
             if (count > 0 && Math.abs(count - measureLength) > 0.01) {
                 const diff = count - measureLength;
                 const beatDiff = Math.abs(diff / 2);
@@ -225,10 +232,11 @@ function checkRhythm(isSilent = false) {
         return { ok: false, msg: fullMsg };
     }
 
+    // 綺麗に終止線を付与
     finalizeScore();
     
     if (!isSilent) {
-        alert(`リズムチェックOK！（${scoreSettings.meter}）`);
+        alert(`リズムチェックOK！（${scoreSettings.meter}）\n小節線を自動で整え終止線を付与しました。`);
     }
 
     input.focus();
@@ -618,4 +626,91 @@ function parseMeasureLength(cleanM) {
     });
 
     return count;
+}
+
+/**
+ * 入力された音符の長さを自動計算し、適切な位置に小節線「|」を自動挿入したテキストを返す関数
+ */
+function autoInsertMeasureLines(rawText) {
+    const lines = rawText.split('\n');
+    const [num, den] = scoreSettings.meter.split('/').map(Number);
+    const measureLength = num * (8 / den); // 1小節のターゲット長さ（8分音符換算）
+
+    const processedLines = lines.map(line => {
+        // メタデータ行や空行、コメント行はそのまま返す
+        if (line.includes(':') || line.trim() === "" || line.startsWith('%')) {
+            return line;
+        }
+
+        // 既存の終止線や小節線を一旦すべて取り除き、純粋な音符トークンの配列にする
+        const cleanLine = line.replace(/\|\]/g, "").replace(/\|/g, "").replace(/\[.*?\]/g, "").trim();
+        if (cleanLine === "") return line;
+
+        // トークンに分解（既存の parseMeasureLength のロジックとマッチングを合わせる）
+        const tokens = cleanLine.match(/(\(3|[\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?)/g);
+        if (!tokens) return line;
+
+        let currentMeasureCount = 0;
+        let newLineTokens = [];
+        let tupletCount = 0;
+        let totalMeasuresInLine = 0; // その行の中での小節数カウント
+
+        tokens.forEach(t => {
+            if (t === "(3") {
+                tupletCount = 3;
+                newLineTokens.push(t);
+                return;
+            }
+
+            // トークン単体の長さを計算
+            const isDotted = t.endsWith('>');
+            const cleanToken = isDotted ? t.slice(0, -1) : t;
+            let val = 1;
+
+            const fractionMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)\/(\d+)/);
+            const slashNumMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*\/(\d+)/);
+            const multiplierMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)/);
+
+            if (fractionMatch) {
+                val = parseInt(fractionMatch[1], 10) / parseInt(fractionMatch[2], 10);
+            } else if (slashNumMatch) {
+                val = 1 / parseInt(slashNumMatch[1], 10);
+            } else if (cleanToken.includes('/') && !cleanToken.match(/\d/)) {
+                val = 0.5;
+            } else if (multiplierMatch) {
+                val = parseInt(multiplierMatch[1], 10);
+            }
+
+            if (isDotted) val = val * 1.5;
+            if (tupletCount > 0) {
+                val = val * (2 / 3);
+                tupletCount--;
+            }
+
+            // トークンを配列に追加
+            newLineTokens.push(t);
+            currentMeasureCount += val;
+
+            // ★ピッタリ1小節分の長さに達したら、小節線を自動挿入
+            if (Math.abs(currentMeasureCount - measureLength) <= 0.01) {
+                totalMeasuresInLine++;
+                // ジャズエディタの既存仕様「4小節ごとに自動改行」をリスペクト
+                if (totalMeasuresInLine % 4 === 0) {
+                    newLineTokens.push("|\n");
+                } else {
+                    newLineTokens.push(" | ");
+                }
+                currentMeasureCount = 0; // 小節カウントをリセット
+            }
+        });
+
+        // 構築したトークンを文字列に結合し、余計な連続スペースや不自然な改行を整形
+        let resultLine = newLineTokens.join(' ')
+            .replace(/\|\n\s*/g, "|\n")
+            .replace(/\s*\|\s*/g, " | ");
+            
+        return resultLine;
+    });
+
+    return processedLines.join('\n');
 }
