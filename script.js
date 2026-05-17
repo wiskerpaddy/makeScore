@@ -58,8 +58,7 @@ function render() {
     const swingText = scoreSettings.swing ? '"Swing"' : ""; 
     
     // ヘッダーを動的に生成
-    const dynamicHeader = `X:1\nM:${scoreSettings.meter}\nK:${scoreSettings.key}\nL:1/8\nQ:1/4=${scoreSettings.tempo} ${swingText}\n`;
-    
+    const dynamicHeader = `X:1\nM:${scoreSettings.meter}\nK:${scoreSettings.key} transpose=-12\nL:1/8\nQ:1/4=${scoreSettings.tempo} ${swingText}\n`;
     const fullAbc = dynamicHeader + input.value;
     
     // ★【ここを修正】描画結果（配列）を変数 result に一度受け取ります
@@ -827,20 +826,20 @@ function saveAsMidi() {
         // 🎷 1文字ずつの危険な置換は完全撤廃。元の文字列を100%そのまま活かす
         let targetNotesText = rawValue;
         
-        // 🎼 アルトサックス（Eb管）の移調をABCJSのヘッダー側で安全に行う処理
+        // 🎼 アルトサックス（Eb管）の移調とオクターブ補正を安全に計算
         let targetKey = scoreSettings.key; // デフォルトは画面で選ばれているKey
         
         if (scoreSettings.saxMode) {
-            // ABCJSに「全体の音の形（オクターブ）は一切変えずに、ピッチだけを正確に短3度（半音3つ）上にシフトせよ」
-            // という特殊な移調命令（K: キー HP またはマニュアルトランスポーズ）をヘッダーに仕込みます
-            // ※ 元のKey（例: C）に対して、実音ピッチを短3度（半音3つ）上に引き上げる指定
-            targetKey = `${scoreSettings.key} transpose=3`;
-            console.log("🎷 [サックスモード] ABCJSのtranspose機能を使用して、安全に実音へ移調します。");
+            // 🎷 サックスモード：本来の「3マス上げる」と「1オクターブ下げる」を合算して「transpose=-9」にする
+            targetKey = `${scoreSettings.key} transpose=-9`;
+            console.log("🎷 [サックスモード] 音声ピッチを適正位置（-9）に補正してMIDIを書き出します。");
+        } else {
+            // 通常モード：一律で1オクターブ（半音12個）音声を下げて書き出す
+            targetKey = `${scoreSettings.key} transpose=-12`;
         }
 
-        // 📝 組み立てるヘッダーの K: の部分に、トランスポーズ済みのKeyを挿入
-        const fullAbcText = `X:1\nM:${scoreSettings.meter}\nK:${targetKey}\nL:1/8\nQ:1/4=${scoreSettings.tempo}${swingText ? " " + swingText : ""}\n${targetNotesText}`;
-        
+        // 📝 組み立てるヘッダーの K: の部分に、補正済みのKeyを挿入
+        const fullAbcText = `X:1\nM:${scoreSettings.meter}\nK:${targetKey}\nL:1/8\nQ:1/4=${scoreSettings.tempo}${swingText ? " " + swingText : ""}\n${targetNotesText}`;        
         console.log("生成されたABCテキスト:\n", fullAbcText);
 
         const visualObjArray = ABCJS.parseOnly(fullAbcText);
