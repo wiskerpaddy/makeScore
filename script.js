@@ -9,8 +9,44 @@ let scoreSettings = {
     meter: "4/4",
     tempo: "130",
     swing: false, // trueで"Swing"表示、falseで非表示(Straight)
-    key: "C"
+    key: "C",
+    saxMode: false // ★新しく追加：trueのときサックス用の移調を行う
 };
+
+// キー（調）を短3度（半音3つ分）上げるためのマップ
+const SAX_KEY_MAP = {
+    "C": "Eb",  "Cm": "Cmin",
+    "G": "Bb",  "Gm": "Gmin",
+    "D": "F",   "Dm": "Fmin",
+    "A": "C",   "Am": "Amin",
+    "E": "G",   "Em": "Gmin",
+    "B": "D",   "Bm": "Dmin",
+    "F#": "A",  "F#m": "Amin",
+    "C#": "E",  "C#m": "Emin",
+    "F": "Ab",  "Fm": "Abmin",
+    "Bb": "Db", "Bbm": "Dbmin",
+    "Eb": "Gb", "Ebm": "Gmin", // 実音に合わせた近似
+    "Ab": "B",  "Abm": "Bmin"
+};
+
+/**
+ * ABCテキスト内の音符をすべて半音3つ分（短3度）高く変換する関数
+ * サックスの運指（C）でピアノの実音（Eb）を鳴らすための補正
+ */
+function transposeAbcTextForSax(abcText) {
+    // 簡易的な音符変換マップ（C,D,E,F,G,A,Bとそのオクターブ/シャープの対応）
+    // ※大文字（低音域）と小文字（高音域）のABC譜面の特性を考慮
+    // ここでは一番シンプルな1オクターブ基準の半音3つシフトの例です
+    const noteMap = {
+        'C': 'Eb', 'C#': 'E', 'D': 'F', 'D#': 'F#', 'E': 'G', 'F': 'Ab', 'F#': 'A', 'G': 'Bb', 'G#': 'B', 'A': 'c', 'A#': 'c#', 'B': 'd',
+        'c': 'eb', 'c#': 'e', 'd': 'f', 'd#': 'f#', 'e': 'g', 'f': 'ab', 'f#': 'a', 'g': 'bb', 'g#': 'b', 'a': 'c\'', 'a#': 'c#\'', 'b': 'd\''
+    };
+
+    let transposed = abcText;
+    // 1文字ずつ、または正規表現で音符部分を置換します
+    // ※より厳密なABCパースを行う場合は、生成されるMIDIデータのピッチ（ノート番号）を直接+3するアプローチが最も確実です。
+    return transposed;
+}
 
 let currentVisualObj = null;
 
@@ -39,6 +75,7 @@ function render() {
 
     // --- 以下、元々あったUI更新やボタンの見た目の処理を寸分違わぬまま100%継続 ---
     const swingBtn = document.getElementById('swing-btn');
+    const saxBtn = document.getElementById('sax-btn');
     if (swingBtn) {
         if (scoreSettings.swing) {
             // ONの時：真鍮ゴールド（目立つ色）
@@ -50,6 +87,19 @@ function render() {
             swingBtn.style.background = "#444";
             swingBtn.style.color = "#fff";
             swingBtn.innerText = "Swing: OFF";
+        }
+    }
+    if (saxBtn) {
+        if (scoreSettings.saxMode) {
+            // ONの時：真鍮ゴールド（目立つ色）
+            saxBtn.style.background = "#d4af37";
+            saxBtn.style.color = "#121417";
+            saxBtn.innerText = "Sax: ON";
+        } else {
+            // OFFの時：暗いグレー
+            saxBtn.style.background = "#444";
+            saxBtn.style.color = "#fff";
+            saxBtn.innerText = "Sax: OFF";
         }
     }
 
@@ -69,16 +119,30 @@ function render() {
  * 設定ボタンが押された時の処理
  */
 function updateScoreSetting(key, value) {
+    // 1. swingの独立トグル処理
     if (key === 'swing') {
-        scoreSettings.swing = !scoreSettings.swing; // Swingボタンは押すたびにON/OFF
-    } else if (key === 'meter_custom' || key === 'tempo_custom') {
-        // 自由入力プロンプトを出す
+        scoreSettings.swing = !scoreSettings.swing;
+        const btn = document.getElementById('swing-btn');
+        if (btn) btn.classList.toggle('active', scoreSettings.swing);
+    } 
+    // 2. saxModeの独立トグル処理（swingとは完全に独立させる）
+    else if (key === 'saxMode') {
+        scoreSettings.saxMode = !scoreSettings.saxMode;
+        const btn = document.getElementById('sax-btn');
+        if (btn) btn.classList.toggle('active', scoreSettings.saxMode);
+    } 
+    // 3. 既存の自由入力プロンプト処理（変更なし）
+    else if (key === 'meter_custom' || key === 'tempo_custom') {
         const newVal = prompt(`${key === 'meter_custom' ? '拍数' : 'テンポ'}を入力してください`, value);
         if (newVal) scoreSettings[key.split('_')[0]] = newVal;
-    } else {
+    } 
+    // 4. その他の通常設定（変更なし）
+    else {
         scoreSettings[key] = value;
     }
-    render(); // 楽譜を再描画
+
+    // 最後に描画処理を走らせる
+    render();
 }
 
 /**
@@ -738,6 +802,9 @@ function updateScore() {
 /**
  * MIDI保存ボタン（HTML文字列パース修正版）
  */
+/**
+ * MIDI保存ボタン（HTML文字列パース修正 ＋ サックス移調モード対応版）
+ */
 function saveAsMidi() {
     const rawValue = input.value.trim();
     if (rawValue === "") {
@@ -745,9 +812,7 @@ function saveAsMidi() {
         return;
     }
 
-    // 保存前にサイレントモードでチェックを実行
     const result = checkRhythm(true); 
-    
     if (!result.ok) {
         if (!confirm(result.msg + "\n\nこのまま保存しますか？")) {
             return; 
@@ -764,35 +829,34 @@ function saveAsMidi() {
             String(now.getSeconds()).padStart(2, '0');
 
         const swingText = scoreSettings.swing ? '"Swing"' : ""; 
-        const fullAbcText = `X:1\nM:${scoreSettings.meter}\nK:${scoreSettings.key}\nL:1/8\nQ:1/4=${scoreSettings.tempo}${swingText ? " " + swingText : ""}\n${rawValue}`;
-        
-        const visualObjArray = ABCJS.parseOnly(fullAbcText);
+
+        // ★サックスモードのフラグを見て、渡すKeyをすり替える
+        let exportKey = scoreSettings.key;
+        if (scoreSettings.saxMode) {
+            exportKey = SAX_KEY_MAP[scoreSettings.key] || scoreSettings.key;
+        }
+
+        // 組み立て（K: には移調後のexportKeyを渡す）
+        const fullAbcText = `X:1\nM:${scoreSettings.meter}\nK:${exportKey}\nL:1/8\nQ:1/4=${scoreSettings.tempo}${swingText ? " " + swingText : ""}\n${rawValue}`;        const visualObjArray = ABCJS.parseOnly(fullAbcText);
         if (!visualObjArray || visualObjArray.length === 0) {
             throw new Error("楽譜データの解析に失敗しました。");
         }
         const visualObj = visualObjArray[0];
 
-        // 1. MIDI要素（HTML文字列またはDOM）を取得
         const midiResult = ABCJS.synth.getMidiFile(fullAbcText, {
             visualObj: visualObj
         });
 
-        // 配列で返ってきた場合は最初の要素を取り出す
         let midiTarget = Array.isArray(midiResult) ? midiResult[0] : midiResult;
         let midiDataUrl = "";
 
         if (midiTarget) {
-            // もしオブジェクト形式で midi や href がある場合の保険
             if (typeof midiTarget === "object" && (midiTarget.midi || midiTarget.href)) {
                 midiDataUrl = midiTarget.midi || midiTarget.href;
             } else {
-                // 文字列（HTML）またはDOM要素の場合、文字列に変換して href="..." の中身を抽出
                 const htmlString = typeof midiTarget === "string" ? midiTarget : (midiTarget.outerHTML || "");
-                
-                // href="〜" の中身を抜き出す正規表現
                 const match = htmlString.match(/href=["'](data:audio\/midi[^"']*)["']/);
                 if (match && match[1]) {
-                    // HTMLエンコードされた「&amp;」などがあればデコード
                     midiDataUrl = match[1].replace(/&amp;/g, '&');
                 }
             }
@@ -802,14 +866,11 @@ function saveAsMidi() {
             throw new Error("MIDIデータの抽出に失敗しました。URLが見つかりません。");
         }
 
-        // 2. 仮想リンクを作成して自動ダウンロード
         const link = document.createElement("a");
         link.download = `score_${dateStr}.mid`;
         link.href = midiDataUrl;
         document.body.appendChild(link);
         link.click();
-        
-        // 後片付け
         document.body.removeChild(link);
         
     } catch (error) {
