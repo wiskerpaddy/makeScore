@@ -64,7 +64,14 @@ function render() {
     // ★【ここを修正】描画結果（配列）を変数 result に一度受け取ります
     const result = ABCJS.renderAbc("paper", fullAbc, {
         responsive: "resize",
-        add_classes: true
+        paddingtop: 0,        /* 楽譜の上の余白をゼロに */
+        paddingbottom: 0,     /* 楽譜の下の余白をゼロに */
+        margins: {
+            top: 0,
+            bottom: 0,
+            left: 10,
+            right: 10
+        }
     });
 
     // ★【新しく追加】画面描画が成功していれば、その楽譜データをセーブしておく

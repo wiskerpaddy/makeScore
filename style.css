@@ -106,26 +106,26 @@ textarea {
    📱 【スマホ用スタイル】画面幅が600px以下の時だけ適用
    ========================================================================== */
 @media screen and (max-width: 600px) {
-    /* 📦 スマホ時は楽譜の高さ(30vh)の分だけコンテンツを下げる */
+    /* 📦 楽譜がコンパクトになった分、全体の押し下げ量を「35vh」から「20vh」に激減させます */
     .container {
         position: relative;
         margin-top: 0 !important;
-        padding-top: calc(30vh + 15px) !important;
+        padding-top: calc(18vh + 10px) !important; /* 楽譜の高さ(18vh) ＋ 隙間(10px) */
         padding-bottom: 60px;
         box-sizing: border-box;
     }
 
-    /* 🎷 スマホ時は最上部に「完全密着」させて浮かせる */
+    /* 🎷 楽譜パレット自体の縦幅を、無駄のない適正サイズに縮小 */
     #paper {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
-        height: 30vh;
+        height: 18vh;             /* 30vhから18vhに凝縮。無駄な余白が消えたのでこれで十分収まります */
         background-color: #ffffff !important;
         z-index: 9999;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        padding: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        padding: 5px 10px;
         box-sizing: border-box;
         overflow-y: auto;
     }
