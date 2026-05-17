@@ -152,11 +152,16 @@ function insertText(text) {
     const end = input.selectionEnd;
     const currentVal = input.value;
 
-    // 挿入する文字の末尾にスペースがなければ、自動的に半角スペースを1つ追加する
-    // ただし、すでに末尾がスペースの場合や特殊記号の場合は除く
     let textToInsert = text;
+
+    // 臨時記号 ( ^ , _ , = ) や スラー開始 ( の場合は、絶対に後ろにスペースを入れない
+    const preventSpaceRegex = /^[\^_\=\(]$/;
+
     if (!textToInsert.endsWith(' ') && !textToInsert.endsWith('\n')) {
-        textToInsert = textToInsert + ' ';
+        // 密着させるべき記号以外のときだけ、自動でスペースを末尾に付与する
+        if (!preventSpaceRegex.test(textToInsert)) {
+            textToInsert = textToInsert + ' ';
+        }
     }
 
     // カーソル位置にテキストを挿入
