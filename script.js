@@ -800,10 +800,7 @@ function updateScore() {
 }
 
 /**
- * MIDI保存ボタン（HTML文字列パース修正版）
- */
-/**
- * MIDI保存ボタン（HTML文字列パース修正 ＋ サックス移調モード対応版）
+ * MIDI保存ボタン（HTML文字列パース修正版 ＋ サックス移調対応）
  */
 function saveAsMidi() {
     const rawValue = input.value.trim();
@@ -812,7 +809,9 @@ function saveAsMidi() {
         return;
     }
 
+    // 保存前にサイレントモードでチェックを実行
     const result = checkRhythm(true); 
+    
     if (!result.ok) {
         if (!confirm(result.msg + "\n\nこのまま保存しますか？")) {
             return; 
@@ -830,23 +829,45 @@ function saveAsMidi() {
 
         const swingText = scoreSettings.swing ? '"Swing"' : ""; 
 
-        // ★サックスモードのフラグを見て、渡すKeyをすり替える
-        let exportKey = scoreSettings.key;
+// 🎷 【修正版】サックスモードON時の音符物理置換ロジック
+        let targetNotesText = rawValue;
         if (scoreSettings.saxMode) {
-            exportKey = SAX_KEY_MAP[scoreSettings.key] || scoreSettings.key;
-        }
+            // アルトサックス（Eb管）の運指を、正確に短3度（半音3つ）上の実音に変換するマップ
+            const saxTransposeMap = {
+                // 低い音グループ（大文字）
+                'C': '_E', '^C': 'E', '_D': 'E', 'D': 'F', '^D': '^F', '_E': 'F', 'E': 'G', 
+                'F': '_A', '^F': 'A', '_G': 'A', 'G': '_B', '^G': 'B', '_A': 'B', 'A': 'c', '^A': '_d', '_B': 'd', 'B': 'd',
+                
+                // 高い音グループ（小文字）
+                'c': '_e', '^c': 'e', '_d': 'e', 'd': 'f', '^d': '^f', '_e': 'f', 'e': 'g', 
+                'f': '_a', '^f': 'a', '_g': 'a', 'g': '_b', '^g': 'b', '_a': 'b', 'a': "c'", '^a': "_d'", '_b': "d'", 'b': "d'"
+            };
 
-        // 組み立て（K: には移調後のexportKeyを渡す）
-        const fullAbcText = `X:1\nM:${scoreSettings.meter}\nK:${exportKey}\nL:1/8\nQ:1/4=${scoreSettings.tempo}${swingText ? " " + swingText : ""}\n${rawValue}`;        const visualObjArray = ABCJS.parseOnly(fullAbcText);
+            // 💡 変化記号（^や_）＋ 音名（A-G, a-g）の塊を正確に抽出する正規表現
+            // これにより、c が c' に巻き込まれたり、置換後の文字が再置換されるのを完全に防ぎます
+            targetNotesText = targetNotesText.replace(/([\^_]?[A-Ga-g])/g, (match) => {
+                // マップに定義があれば置換、なければそのまま（| や [ などの記号はスルー）
+                return saxTransposeMap[match] || match;
+            });
+            
+            console.log("🎷 [サックスモード] 安全な一発マッピングで実音へ置換しました。");
+        }
+        
+        // 📝 【ここを修正】末尾に結合するのを rawValue から、置換処理済みの targetNotesText に変更
+        const fullAbcText = `X:1\nM:${scoreSettings.meter}\nK:${scoreSettings.key}\nL:1/8\nQ:1/4=${scoreSettings.tempo}${swingText ? " " + swingText : ""}\n${targetNotesText}`;
+        
+        const visualObjArray = ABCJS.parseOnly(fullAbcText);
         if (!visualObjArray || visualObjArray.length === 0) {
             throw new Error("楽譜データの解析に失敗しました。");
         }
         const visualObj = visualObjArray[0];
 
+        // 1. MIDI要素（HTML文字列またはDOM）を取得
         const midiResult = ABCJS.synth.getMidiFile(fullAbcText, {
             visualObj: visualObj
         });
 
+        // 配列で返ってきた場合は最初の要素を取り出す
         let midiTarget = Array.isArray(midiResult) ? midiResult[0] : midiResult;
         let midiDataUrl = "";
 
@@ -866,11 +887,14 @@ function saveAsMidi() {
             throw new Error("MIDIデータの抽出に失敗しました。URLが見つかりません。");
         }
 
+        // 2. 仮想リンクを作成して自動ダウンロード
         const link = document.createElement("a");
         link.download = `score_${dateStr}.mid`;
         link.href = midiDataUrl;
         document.body.appendChild(link);
         link.click();
+        
+        // 後片付け
         document.body.removeChild(link);
         
     } catch (error) {
