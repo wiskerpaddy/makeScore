@@ -109,9 +109,9 @@ function render() {
     const tempoDisplay = document.getElementById('ui-tempo');
     if (tempoDisplay) tempoDisplay.innerText = scoreSettings.tempo;
     
-    if (window.innerWidth < 600) {
-        document.getElementById('paper').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
+    // if (window.innerWidth < 600) {
+    //     document.getElementById('paper').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // }
 }
 
 /**
@@ -169,7 +169,7 @@ function insertText(text) {
 
     // カーソル位置を挿入した文字のすぐ後ろに移動
     const newPos = start + textToInsert.length;
-    input.focus();
+    // input.focus();
     input.setSelectionRange(newPos, newPos);
 
     // 楽譜を再描画
@@ -306,7 +306,7 @@ function checkRhythm(isSilent = false) {
         const fullMsg = `【リズムのズレがあります（設定: ${scoreSettings.meter}）】\n\n` + feedback.join('\n');
         if (!isSilent) alert(fullMsg);
         
-        input.focus();
+        // input.focus();
         input.setSelectionRange(selectionStart, selectionEnd);
         return { ok: false, msg: fullMsg };
     }
@@ -318,7 +318,7 @@ function checkRhythm(isSilent = false) {
         alert(`リズムチェックOK！（${scoreSettings.meter}）\n小節線を自動で整え終止線を付与しました。`);
     }
 
-    input.focus();
+    // input.focus();
     input.setSelectionRange(selectionStart, selectionEnd);
 
     return { ok: true };
@@ -501,7 +501,7 @@ function deleteLast() {
     // 基本は元の位置を維持ですが、末尾を消した場合はみ出さないように調整
     const newCursorPos = Math.min(selectionStart, val.length);
     
-    input.focus();
+    // input.focus();
     input.setSelectionRange(newCursorPos, newCursorPos);
 
     render();
@@ -611,7 +611,7 @@ function insertDotMultiplier() {
         input.value = replacedBeforeText + afterText;
         
         const newPos = replacedBeforeText.length;
-        input.focus();
+        // input.focus();
         input.setSelectionRange(newPos, newPos);
         
         render();
