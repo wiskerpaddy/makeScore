@@ -378,4 +378,9 @@ button[onclick*="Swing"] {
         justify-content: center;
         white-space: nowrap;           /* ボタン内での意図しない自動改行を禁止 */
     }
+    .container {
+        position: relative;
+        margin: 0 auto;
+        padding: 20px;
+    }
 }
