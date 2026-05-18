@@ -161,7 +161,7 @@ function insertText(text, addSpace = false) {
     input.setRangeText(textToInsert, start, end, "end");
 
     // WebViewでフォーカスが外れないよう明示的にフォーカスを戻す
-    input.focus();
+    //input.focus();
 
     // 楽譜を再描画
     render();
