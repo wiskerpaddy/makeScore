@@ -492,9 +492,27 @@ function deleteLast() {
     render();
 }
 
+/**
+ * 臨時記号（♯、♭、♮）や装飾（Doo, Bah）用
+ * ★スマート回り込み機能搭載：音符を入力した【後】に押しても、自動で前にくっつく
+ */
 function insertNuance(symbol) {
-    // スラー開始やアクセントは音符の直前に置くため、スペースなしで挿入
-    insertText(symbol);
+    const start = input.selectionStart;
+    const beforeCursor = input.value.substring(0, start);
+
+    // 直前にある「音符の塊（C, c', G2など）」をキャッチする正規表現
+    const noteRegex = /([a-gA-G][',]*[0-9/]*)$/;
+    const match = beforeCursor.match(noteRegex);
+
+    if (match) {
+        const note = match[1];
+        // 取得した音符の前に記号をねじ込む（setRangeTextなのでカーソルは飛ばない）
+        input.setRangeText(symbol + note, start - note.length, start, "end");
+        render();
+    } else {
+        // 直前が音符でなければ、そのまま現在位置に挿入
+        insertText(symbol);
+    }
 }
 
 /**
@@ -568,18 +586,20 @@ function insertArticulation(symbol) {
 function insertDotMultiplier() {
     const start = input.selectionStart;
     const val = input.value;
-    
     const beforeText = val.substring(0, start);
-    const afterText = val.substring(start);
     
-    const match = beforeText.match(/([A-Ga-gYzz][0-9/]*)\s*$/);
+    // 直前の音符（オクターブ記号なども含む）をキャッチ。末尾の空白を期待しない形に修正
+    const match = beforeText.match(/([A-Ga-gYzz][',]*[0-9/]*)$/);
     
     if (match) {
         const lastNoteToken = match[1];
         let newNoteToken = "";
-        const baseNote = lastNoteToken.match(/^[A-Ga-gYzz]/)[0];
         
-        // 【正しい定義に変更】元の長さに「+1カウント(0.5拍)」した数字に打ち替える
+        // 元のベースノート（ドレミや休符 + オクターブ記号）を抽出
+        const baseNoteMatch = lastNoteToken.match(/^[A-Ga-gYzz][',]*/);
+        const baseNote = baseNoteMatch ? baseNoteMatch[0] : lastNoteToken[0];
+        
+        // 【元のロジックをそのまま維持】元の長さに「+1カウント(0.5拍)」した数字に打ち替える
         if (lastNoteToken.includes("4")) {
             newNoteToken = baseNote + "5";   // 2拍(4) + 0.5拍(1) = 2.5拍(5)
         } else if (lastNoteToken.includes("2")) {
@@ -592,16 +612,13 @@ function insertDotMultiplier() {
             newNoteToken = baseNote + "3";   // 数字なし(1) + 0.5拍(1) = 1拍(2) ですが、既存の付点8分(1.5)の互換として3
         }
         
-        const replacedBeforeText = beforeText.substring(0, beforeText.length - match[0].length) + newNoteToken + " ";
-        input.value = replacedBeforeText + afterText;
-        
-        const newPos = replacedBeforeText.length;
-        // input.focus();
-        input.setSelectionRange(newPos, newPos);
+        // ★修正：テキスト全体の上書きをやめ、対象の音符だけを新しく置き換える（空白なし）
+        const replaceStart = start - lastNoteToken.length;
+        input.setRangeText(newNoteToken, replaceStart, start, "end");
         
         render();
     } else {
-        insertText("> ");
+        insertText(">"); 
     }
 }
 
