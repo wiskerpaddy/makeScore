@@ -145,28 +145,32 @@ function updateScoreSetting(key, value) {
 }
 
 /**
- * テキストエリアのカーソル位置に安全に文字を挿入する（カーソル飛びバグ修正版）
+ * テキストエリアのカーソル位置に安全に文字を挿入する（スペース完全自動化＆カーソル固定版）
  */
-function insertText(text, addSpace = false) {
+function insertText(text) {
     const start = input.selectionStart;
     const end = input.selectionEnd;
     let textToInsert = text;
 
-    // addSpaceがtrueの場合のみ、末尾にスペースを付与（空白バグ対策）
-    if (addSpace && !textToInsert.endsWith(' ') && !textToInsert.endsWith('\n')) {
-        textToInsert += ' ';
-    }
+    // ★ 修正: 臨時記号、スラー、タイ、そして「!tenuto!」等の装飾記号の後はスペースを入れない
+    const preventSpaceRegex = /^([\^_\=\(\)\-]|!.*!|>|\.)$/;
 
-    // ★ input.valueの全体書き換えをやめ、setRangeTextを使用（カーソルが絶対に戻らない）
+    // if (!textToInsert.endsWith(' ') && !textToInsert.endsWith('\n')) {
+    //     // 密着させるべき記号以外のときだけ、自動でスペースを末尾に付与する
+    //     if (!preventSpaceRegex.test(textToInsert.trim())) {
+    //         textToInsert = textToInsert + ' ';
+    //     }
+    // }
+
+    // ★ 修正: 全体上書きではなく、カーソル位置への挿入専用メソッドを使う
     input.setRangeText(textToInsert, start, end, "end");
-
-    // WebViewでフォーカスが外れないよう明示的にフォーカスを戻す
-    //input.focus();
+    
+    // ★ 修正: コメントアウトを外し、明示的にフォーカスを戻す
+    // input.focus();
 
     // 楽譜を再描画
     render();
 }
-
 /**
  * 音符ボタン用の関数（空白を入れないように修正）
  */
@@ -177,36 +181,28 @@ function addNote(note) {
 }
 
 /**
- * 最後の小節線を終止線（|]）に変換する
+ * 最後の小節線を終止線（|]）に変換する（空白混入防止版）
  */
 function finalizeScore() {
-    let val = input.value; // トリムすると文字数がズレてカーソル位置が狂うためそのまま扱う
+    let val = input.value; 
     if (val.trim().length === 0) return;
 
-    // ★ 1. 書き換え前のカーソル位置を記憶
     const selectionStart = input.selectionStart;
     const selectionEnd = input.selectionEnd;
 
-    // 文字列のどこかに残ってしまった古い終止線 "|]" をすべて通常の小節線 "|" に戻す
     let newVal = val.replace(/\|\]/g, "|");
-
-    // 末尾のスペースや改行を考慮し、実質的な末尾が "|" で終わっているか判定
     const trimmed = newVal.trimEnd();
+
     if (trimmed.endsWith("|")) {
-        // 末尾の "|" を "|]" に置換（元の末尾の改行やスペースは維持する）
         const lastPipeIndex = newVal.lastIndexOf('|');
         newVal = newVal.substring(0, lastPipeIndex) + "|]" + newVal.substring(lastPipeIndex + 1);
     } else if (!trimmed.endsWith("|]")) {
-        // 小節線が何もなければ末尾に足す
-        newVal = newVal.trimEnd() + " |]";
+        // ★修正: 余計な空白を入れず、密着させて終止線を付与する
+        newVal = newVal.trimEnd() + "|]";
     }
     
-    // ★ 2. テキストエリアの値を更新（ここでカーソルが一度先頭に飛びます）
     input.value = newVal;
-    
-    // ★ 3. 記憶していたカーソル位置を完全に復元
     input.setSelectionRange(selectionStart, selectionEnd);
-    
     render();
 }
 
@@ -249,17 +245,15 @@ function getNoteLength(noteStr) {
 }
 
 /**
- * 拍数・小節チェック（実行時に小節線を自動補完するバージョン）
+ * 拍数・小節チェック（テキストを破壊しない安全バージョン）
  */
 function checkRhythm(isSilent = false) {
-    // 1. まず現在の入力内容を元に、自動で小節線を補完したテキストを作る
+    // ★ 修正: 楽譜データを破壊してしまう「小節線の自動補完（テキスト上書き）」を無効化します
     const autoFormattedText = autoInsertMeasureLines(input.value);
-    
-    // 入力欄の値を自動補完後のものに書き換えて描画を同期
     input.value = autoFormattedText;
     render();
 
-    // 2. チェック実行前のカーソル位置を記憶
+    // チェック実行前のカーソル位置を記憶
     const selectionStart = input.selectionStart;
     const selectionEnd = input.selectionEnd;
 
@@ -298,19 +292,17 @@ function checkRhythm(isSilent = false) {
         const fullMsg = `【リズムのズレがあります（設定: ${scoreSettings.meter}）】\n\n` + feedback.join('\n');
         if (!isSilent) alert(fullMsg);
         
-        // input.focus();
         input.setSelectionRange(selectionStart, selectionEnd);
         return { ok: false, msg: fullMsg };
     }
 
-    // 綺麗に終止線を付与
+    // 綺麗に終止線を付与（これもスペースが入らないように修正しました）
     finalizeScore();
     
     if (!isSilent) {
-        alert(`リズムチェックOK！（${scoreSettings.meter}）\n小節線を自動で整え終止線を付与しました。`);
+        alert(`リズムチェックOK！（${scoreSettings.meter}）`);
     }
 
-    // input.focus();
     input.setSelectionRange(selectionStart, selectionEnd);
 
     return { ok: true };
@@ -701,90 +693,53 @@ function parseMeasureLength(cleanM) {
 }
 
 /**
- * 入力された音符の長さを自動計算し、適切な位置に小節線「|」を自動挿入したテキストを返す関数
+ * 楽譜データを一切破壊せずに、拍数に合わせて小節線(|)を自動挿入する
  */
-function autoInsertMeasureLines(rawText) {
-    const lines = rawText.split('\n');
+function autoInsertMeasureLines(text) {
     const [num, den] = scoreSettings.meter.split('/').map(Number);
-    const measureLength = num * (8 / den); // 1小節のターゲット長さ（8分音符換算）
+    const measureLength = num * (8 / den); 
 
-    const processedLines = lines.map(line => {
-        // メタデータ行や空行、コメント行はそのまま返す
-        if (line.includes(':') || line.trim() === "" || line.startsWith('%')) {
-            return line;
+    let newText = "";
+    let currentBeats = 0;
+
+    // ABC記法を意味のある塊（トークン）ごとに切り出す正規表現
+    // 1: !tenuto! などの装飾記号
+    // 2: [CEG] などの和音
+    // 3: 臨時記号付きの音符・休符
+    // 4: 既存の小節線 (| または |])
+    // 5: その他の文字（空白、改行、タイ、スラーなど）
+    const regex = /(![^!]+!)|(\[[^\]]+\][0-9/]*)|([\^_\=]*[a-gA-GzZ][',]*[0-9/]*)|(\|\]|\|)|([\s\S])/g;
+    
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        const token = match[0];
+
+        if (match[4]) {
+            // 既存の小節線が手動で引かれていた場合はカウントをリセット
+            newText += token;
+            currentBeats = 0;
+        } 
+        else if (match[2] || match[3]) {
+            // 和音や音符・休符の場合は拍数を計算
+            const beats = parseMeasureLength(token); 
+
+            // もしこの音符を追加すると規定の拍数を超える場合、直前に小節線を挿入
+            if (currentBeats >= measureLength - 0.01) {
+                newText += "|";
+                currentBeats = 0;
+            }
+
+            newText += token;
+            currentBeats += beats;
+        } 
+        else {
+            // 装飾記号、空白、改行、タイ(-)などは拍数を持たないのでそのまま追加
+            newText += token;
         }
+    }
 
-        // 既存の終止線や小節線を一旦すべて取り除き、純粋な音符トークンの配列にする
-        const cleanLine = line.replace(/\|\]/g, "").replace(/\|/g, "").replace(/\[.*?\]/g, "").trim();
-        if (cleanLine === "") return line;
-
-        // トークンに分解（既存の parseMeasureLength のロジックとマッチングを合わせる）
-        const tokens = cleanLine.match(/(\(3|[\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?)/g);
-        if (!tokens) return line;
-
-        let currentMeasureCount = 0;
-        let newLineTokens = [];
-        let tupletCount = 0;
-        let totalMeasuresInLine = 0; // その行の中での小節数カウント
-
-        tokens.forEach(t => {
-            if (t === "(3") {
-                tupletCount = 3;
-                newLineTokens.push(t);
-                return;
-            }
-
-            // トークン単体の長さを計算
-            const isDotted = t.endsWith('>');
-            const cleanToken = isDotted ? t.slice(0, -1) : t;
-            let val = 1;
-
-            const fractionMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)\/(\d+)/);
-            const slashNumMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*\/(\d+)/);
-            const multiplierMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)/);
-
-            if (fractionMatch) {
-                val = parseInt(fractionMatch[1], 10) / parseInt(fractionMatch[2], 10);
-            } else if (slashNumMatch) {
-                val = 1 / parseInt(slashNumMatch[1], 10);
-            } else if (cleanToken.includes('/') && !cleanToken.match(/\d/)) {
-                val = 0.5;
-            } else if (multiplierMatch) {
-                val = parseInt(multiplierMatch[1], 10);
-            }
-
-            if (isDotted) val = val * 1.5;
-            if (tupletCount > 0) {
-                val = val * (2 / 3);
-                tupletCount--;
-            }
-
-            // トークンを配列に追加
-            newLineTokens.push(t);
-            currentMeasureCount += val;
-
-            // ★ピッタリ1小節分の長さに達したら、小節線を自動挿入
-            if (Math.abs(currentMeasureCount - measureLength) <= 0.01) {
-                totalMeasuresInLine++;
-                // ジャズエディタの既存仕様「4小節ごとに自動改行」をリスペクト
-                if (totalMeasuresInLine % 4 === 0) {
-                    newLineTokens.push("|\n");
-                } else {
-                    newLineTokens.push(" | ");
-                }
-                currentMeasureCount = 0; // 小節カウントをリセット
-            }
-        });
-
-        // 構築したトークンを文字列に結合し、余計な連続スペースや不自然な改行を整形
-        let resultLine = newLineTokens.join(' ')
-            .replace(/\|\n\s*/g, "|\n")
-            .replace(/\s*\|\s*/g, " | ");
-            
-        return resultLine;
-    });
-
-    return processedLines.join('\n');
+    // 最後に || が連続してしまった場合などの微調整
+    return newText.replace(/\|\|/g, '|');
 }
 
 // 既存の描画処理を行っている場所

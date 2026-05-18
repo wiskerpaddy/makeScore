@@ -88,6 +88,12 @@
             <button id="sax-btn" onclick="updateScoreSetting('saxMode')" style="transition: 0.3s;">
                 サックスモード
             </button>
+            <button onclick="checkRhythm()" class="btn-check" style="background: #e74c3c; color: white;">
+                チェック
+            </button>
+            <button onclick="deleteLast()" style="background: #e74c3c; color: white;">
+                消去
+            </button>
         </div>
         <div class="section-guide">① 音の長さを選ぶ</div>
         <div class="duration-picker">
@@ -146,12 +152,6 @@
             <button onclick="insertText('!&gt;!')">🎺 Bah(アクセント)</button>
             <!-- <button onclick="insertText('&quot;Swing&quot; ')">Swing</button>
             <button onclick="insertText('&quot;Straight&quot; ')">Straight</button> -->
-        </div>
-
-        <div class="section-guide">④ 楽譜の編集・確認</div>
-        <div class="note-grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 5px;">
-            <button onclick="deleteLast()" style="background: #e74c3c; color: white;">消去</button>
-            <button onclick="checkRhythm()" class="btn-check" style="background: #e74c3c; color: white;">チェック</button>
         </div>
     </div>
 
