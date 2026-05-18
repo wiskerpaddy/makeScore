@@ -145,43 +145,35 @@ function updateScoreSetting(key, value) {
 }
 
 /**
- * テキストエリアのカーソル位置に安全に文字を挿入する（スペース完全自動化版）
+ * テキストエリアのカーソル位置に安全に文字を挿入する（カーソル飛びバグ修正版）
  */
-function insertText(text) {
+function insertText(text, addSpace = false) {
     const start = input.selectionStart;
     const end = input.selectionEnd;
-    const currentVal = input.value;
-
     let textToInsert = text;
 
-    // 臨時記号 ( ^ , _ , = ) や スラー開始 ( の場合は、絶対に後ろにスペースを入れない
-    const preventSpaceRegex = /^[\^_\=\(]$/;
-
-    if (!textToInsert.endsWith(' ') && !textToInsert.endsWith('\n')) {
-        // 密着させるべき記号以外のときだけ、自動でスペースを末尾に付与する
-        if (!preventSpaceRegex.test(textToInsert)) {
-            textToInsert = textToInsert + ' ';
-        }
+    // addSpaceがtrueの場合のみ、末尾にスペースを付与（空白バグ対策）
+    if (addSpace && !textToInsert.endsWith(' ') && !textToInsert.endsWith('\n')) {
+        textToInsert += ' ';
     }
 
-    // カーソル位置にテキストを挿入
-    input.value = currentVal.substring(0, start) + textToInsert + currentVal.substring(end);
+    // ★ input.valueの全体書き換えをやめ、setRangeTextを使用（カーソルが絶対に戻らない）
+    input.setRangeText(textToInsert, start, end, "end");
 
-    // カーソル位置を挿入した文字のすぐ後ろに移動
-    const newPos = start + textToInsert.length;
-    // input.focus();
-    input.setSelectionRange(newPos, newPos);
+    // WebViewでフォーカスが外れないよう明示的にフォーカスを戻す
+    input.focus();
 
     // 楽譜を再描画
     render();
 }
 
 /**
- * 音符ボタン用の関数（末尾にスペースを入れるなど調整）
+ * 音符ボタン用の関数（空白を入れないように修正）
  */
 function addNote(note) {
     const dur = document.querySelector('input[name="dur"]:checked').value;
-    insertText(note + dur + " ");
+    // スペースを結合せず、そのまま挿入
+    insertText(note + dur); 
 }
 
 /**
@@ -461,9 +453,10 @@ async function saveAsImage() {
 /**
  * 選択中の長さと音名を組み合わせて挿入する
  */
-function addNote(note) {
+function addRest() {
     const dur = document.querySelector('input[name="dur"]:checked').value;
-    insertText(note + dur + " "); // ★末尾に " " を追加
+    // 空白を入れずに選択中の長さを反映
+    insertText("z" + dur);  
 }
 
 function addRest() {
