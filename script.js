@@ -857,3 +857,96 @@ function saveAsMidi() {
         alert("MIDIファイルの生成中にエラーが発生しました。\n" + error.message);
     }
 }
+
+// ==========================================
+// ★ 音符ボタンのフリック入力拡張機能
+// ==========================================
+// ==========================================
+// ★ 音符ボタンのフリック入力拡張機能（8方向・斜め対応版）
+// ==========================================
+function setupFlickInput() {
+    const noteButtons = document.querySelectorAll('.note-grid button[onclick^="addNote"]');
+    const threshold = 30; // フリックと判定する最低移動距離(ピクセル)
+
+    noteButtons.forEach(btn => {
+        const onclickAttr = btn.getAttribute('onclick');
+        const noteMatch = onclickAttr.match(/addNote\('([^']+)'\)/);
+        if (!noteMatch) return;
+        
+        const baseNote = noteMatch[1];
+        btn.removeAttribute('onclick');
+        btn.style.touchAction = "none";
+        
+        let startX = 0;
+        let startY = 0;
+        let isMoving = false;
+
+        btn.addEventListener('pointerdown', (e) => {
+            startX = e.clientX;
+            startY = e.clientY;
+            isMoving = true;
+            btn.setPointerCapture(e.pointerId); 
+        });
+
+        btn.addEventListener('pointerup', (e) => {
+            if (!isMoving) return;
+            isMoving = false;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            // XとYの移動量から、直線距離を計算
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            let symbol = ""; 
+            
+            if (distance > threshold) {
+                // 角度を計算（Math.atan2は -180度 〜 180度 で返すので、扱いやすく 0 〜 360度 に変換）
+                let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                if (angle < 0) angle += 360;
+
+                // 8方向の判定（45度ずつ分割）
+                if (angle >= 337.5 || angle < 22.5) {
+                    symbol = "!tenuto!"; // 右フリック（→）: テヌート
+                } 
+                else if (angle >= 22.5 && angle < 67.5) {
+                    symbol = "!>!";      // 右下フリック（↘）: アクセント
+                } 
+                else if (angle >= 67.5 && angle < 112.5) {
+                    symbol = "_";        // 下フリック（↓）: フラット
+                } 
+                else if (angle >= 112.5 && angle < 157.5) {
+                    symbol = "!>!";      // 左下フリック（↙）: アクセント
+                } 
+                else if (angle >= 157.5 && angle < 202.5) {
+                    symbol = "=";        // 左フリック（←）: ナチュラル
+                } 
+                else if (angle >= 202.5 && angle < 247.5) {
+                    symbol = "!>!";      // 左上フリック（↖）: アクセント
+                } 
+                else if (angle >= 247.5 && angle < 292.5) {
+                    symbol = "^";        // 上フリック（↑）: シャープ
+                } 
+                else if (angle >= 292.5 && angle < 337.5) {
+                    symbol = "!>!";      // 右上フリック（↗）: アクセント
+                }
+            }
+            
+            const dur = document.querySelector('input[name="dur"]:checked').value;
+            
+            // 記号 + 音符 + 長さ の順で一気に挿入
+            insertText(symbol + baseNote + dur);
+            
+            btn.releasePointerCapture(e.pointerId);
+        });
+
+        btn.addEventListener('pointercancel', () => {
+            isMoving = false;
+        });
+    });
+}
+
+// 画面が読み込まれたら自動でフリック機能をセットアップ
+document.addEventListener("DOMContentLoaded", () => {
+    setupFlickInput();
+});
