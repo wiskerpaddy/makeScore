@@ -368,3 +368,12 @@ button[onclick*="Swing"] {
         white-space: nowrap;           /* ボタン内での意図しない自動改行を禁止 */
     }
 }
+/* --- アコーディオンメニューのスタイル --- */
+.accordion-menu {
+    display: none; /* 初期状態は非表示 */
+    background: #1a1a1a; 
+    padding: 10px; 
+    border-radius: 8px; 
+    margin-top: 5px; 
+    border: 1px solid var(--brass);
+}

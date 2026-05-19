@@ -152,23 +152,17 @@ function insertText(text) {
     const end = input.selectionEnd;
     let textToInsert = text;
 
-    // ★ 修正: 臨時記号、スラー、タイ、そして「!tenuto!」等の装飾記号の後はスペースを入れない
     const preventSpaceRegex = /^([\^_\=\(\)\-]|!.*!|>|\.)$/;
+    // （コメントアウト部分はそのまま）
 
-    // if (!textToInsert.endsWith(' ') && !textToInsert.endsWith('\n')) {
-    //     // 密着させるべき記号以外のときだけ、自動でスペースを末尾に付与する
-    //     if (!preventSpaceRegex.test(textToInsert.trim())) {
-    //         textToInsert = textToInsert + ' ';
-    //     }
-    // }
-
-    // ★ 修正: 全体上書きではなく、カーソル位置への挿入専用メソッドを使う
     input.setRangeText(textToInsert, start, end, "end");
     
-    // ★ 修正: コメントアウトを外し、明示的にフォーカスを戻す
-    // input.focus();
+    // ★ 追加: カーソルが先頭に飛ぶWebViewバグを強制ブロック
+    const newPos = start + textToInsert.length;
+    input.setSelectionRange(newPos, newPos);
+    
+    // input.focus(); // コメントアウトのまま
 
-    // 楽譜を再描画
     render();
 }
 /**
@@ -500,17 +494,20 @@ function insertNuance(symbol) {
     const start = input.selectionStart;
     const beforeCursor = input.value.substring(0, start);
 
-    // 直前にある「音符の塊（C, c', G2など）」をキャッチする正規表現
     const noteRegex = /([a-gA-G][',]*[0-9/]*)$/;
     const match = beforeCursor.match(noteRegex);
 
     if (match) {
         const note = match[1];
-        // 取得した音符の前に記号をねじ込む（setRangeTextなのでカーソルは飛ばない）
-        input.setRangeText(symbol + note, start - note.length, start, "end");
+        const replaceStart = start - note.length;
+        input.setRangeText(symbol + note, replaceStart, start, "end");
+        
+        // ★ 追加: カーソル飛びを強制ブロック
+        const newPos = replaceStart + symbol.length + note.length;
+        input.setSelectionRange(newPos, newPos);
+        
         render();
     } else {
-        // 直前が音符でなければ、そのまま現在位置に挿入
         insertText(symbol);
     }
 }
@@ -718,44 +715,50 @@ function autoInsertMeasureLines(text) {
 
     let newText = "";
     let currentBeats = 0;
+    let measureCount = 0; // ★ 追加: 小節の数をカウントする変数
 
-    // ABC記法を意味のある塊（トークン）ごとに切り出す正規表現
-    // 1: !tenuto! などの装飾記号
-    // 2: [CEG] などの和音
-    // 3: 臨時記号付きの音符・休符
-    // 4: 既存の小節線 (| または |])
-    // 5: その他の文字（空白、改行、タイ、スラーなど）
-    const regex = /(![^!]+!)|(\[[^\]]+\][0-9/]*)|([\^_\=]*[a-gA-GzZ][',]*[0-9/]*)|(\|\]|\|)|([\s\S])/g;
+    // ★ 追加: 手動の改行 (\n) も検知できるように正規表現に追加
+    const regex = /(![^!]+!)|(\[[^\]]+\][0-9/]*)|([\^_\=]*[a-gA-GzZ][',]*[0-9/]*)|(\|\]|\|)|(\n)|([\s\S])/g;
     
     let match;
     while ((match = regex.exec(text)) !== null) {
         const token = match[0];
 
-        if (match[4]) {
-            // 既存の小節線が手動で引かれていた場合はカウントをリセット
+        if (match[5]) { 
+            // 手動の改行があったらカウントをリセット
+            newText += token;
+            measureCount = 0;
+            currentBeats = 0;
+        }
+        else if (match[4]) {
             newText += token;
             currentBeats = 0;
+            measureCount++;
+            // 4小節に達したら改行を入れる
+            if (measureCount >= 4) {
+                newText += "\n";
+                measureCount = 0;
+            }
         } 
         else if (match[2] || match[3]) {
-            // 和音や音符・休符の場合は拍数を計算
             const beats = parseMeasureLength(token); 
-
-            // もしこの音符を追加すると規定の拍数を超える場合、直前に小節線を挿入
             if (currentBeats >= measureLength - 0.01) {
-                newText += "|";
+                measureCount++;
+                if (measureCount >= 4) {
+                    newText += "|\n"; // ★ 4小節目なら改行付きで線を引く
+                    measureCount = 0;
+                } else {
+                    newText += "|";
+                }
                 currentBeats = 0;
             }
-
             newText += token;
             currentBeats += beats;
         } 
         else {
-            // 装飾記号、空白、改行、タイ(-)などは拍数を持たないのでそのまま追加
             newText += token;
         }
     }
-
-    // 最後に || が連続してしまった場合などの微調整
     return newText.replace(/\|\|/g, '|');
 }
 
