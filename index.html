@@ -72,7 +72,7 @@
     </details>
 
     <div class="note-selector">
-        <details open><summary class="section-guide">【新規】基本設定（タップで詳細入力）</summary>
+        <details open><summary class="section-guide">∨【新規】基本設定（タップで詳細入力）</summary>
         <div class="note-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 10px;">
             <button onclick="updateScoreSetting('meter_custom', scoreSettings.meter)" style="background: #444;color: white;">
                 拍: <span id="ui-meter">4/4</span>
@@ -96,7 +96,7 @@
             </button>
         </div>
         </details>
-        <details open> <summary class="section-guide" style="cursor: pointer;">① 音の長さを選ぶ</summary>
+        <details open> <summary class="section-guide" style="cursor: pointer;">∨ ① 音の長さを選ぶ</summary>
             <div class="duration-picker">
                 <label><input type="radio" name="dur" value="8"> 全音</label>
                 <label><input type="radio" name="dur" value="4"> 2分</label>
@@ -107,7 +107,25 @@
         </details>
 
         <details open>
-        <summary class="section-guide" style="cursor: pointer;">② 音符を入れる（2オクターブ）</summary>
+        <summary class="section-guide" style="cursor: pointer;">
+            <span>∨ ② 音符を入れる（2オクターブ）</span>
+            <span onclick="event.preventDefault(); document.getElementById('flick-help').open = !document.getElementById('flick-help').open;" style="font-size: 1rem; color: var(--brass); background: rgba(212, 175, 55, 0.1); padding: 2px 8px; border-radius: 4px;">
+                💡 フリック入力
+            </span>
+        </summary>
+＜
+        <details id="flick-help" style="background: rgba(255,255,255,0.05); border: 1px dashed var(--brass); border-radius: 8px; margin: 0 0 10px 0; padding: 0;">
+            <summary style="display: none;"></summary> <div style="padding: 10px; font-size: 0.9rem; color: #fff; line-height: 1.8;">
+                <div style="text-align: center; font-weight: bold; margin-bottom: 8px; color: var(--brass);">【 フリック操作ガイド 】</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div style="background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; text-align: center;">∧　<trong>♯</strong> (シャープ)</div>
+                    <div style="background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; text-align: center;">∨　<strong>♭</strong> (フラット)</div>
+                    <div style="background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; text-align: center;">＜　<strong>♮</strong> (ナチュラル)</div>
+                    <div style="background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; text-align: center;">＞　<strong>Doo</strong> (＞)</div>
+                    <div style="grid-column: span 2; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; text-align: center;">斜め4方向: <strong>Bah</strong> (＿)</div>
+                </div>
+            </div>
+        </details>
             <div class="note-grid">
                 <button onclick="addNote('C')">ド</button>
                 <button onclick="addNote('D')">レ</button>
@@ -133,7 +151,7 @@
                 <button onclick="insertNewLine()" class="ui-btn" style="background: #e74c3c; color: white;">改行</button>
             </div>
         </details>
-        <details> <summary class="section-guide" style="cursor: pointer;">③ 装飾・臨時記号</summary>
+        <details> <summary class="section-guide" style="cursor: pointer;">∨ ③ 装飾・臨時記号</summary>
             <div class="note-grid" style="grid-template-columns: repeat(3, 1fr);">
                 <button onclick="insertNuance('^')" class="btn-func" style="background: #333;color: white;">♯ シャープ</button>
                 <button onclick="insertNuance('_')" class="btn-func" style="background: #333;color: white;">♭ フラット</button>
@@ -149,7 +167,7 @@
                 <button onclick="insertDotMultiplier()" style="background: #555; color: white;">. 付点 (+0.5拍)</button>
         </div>
 
-        <div class="section-guide">③ ジャズのニュアンス・結合</div>
+        <div class="section-guide">∨ ③ ジャズのニュアンス・結合</div>
         <div class="note-grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 5px;">
             <button onclick="insertText('!tenuto!')">🎷 Doo(テヌート)</button>
             <button onclick="insertText('!&gt;!')">🎺 Bah(アクセント)</button>
