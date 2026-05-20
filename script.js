@@ -265,7 +265,7 @@ function checkRhythm(isSilent = false) {
         const measures = normalizedLine.split('|');
 
         measures.forEach((m, i) => {
-            const cleanM = m.replace(/\[.*?\]/g, "").trim();
+            const cleanM = m.trim();
             if (cleanM === "" || (i === measures.length - 1 && cleanM === "")) return;
 
             // 共通関数を使って1小節の長さを取得
@@ -627,7 +627,7 @@ function insertNewLine() {
     
     const normalizedLine = currentLine.replace(/\|\]/g, "|");
     const measures = normalizedLine.split('|');
-    const cleanM = measures[measures.length - 1].replace(/\[.*?\]/g, "").trim();
+    const cleanM = measures[measures.length - 1].trim();
     
     const [num, den] = scoreSettings.meter.split('/').map(Number);
     const measureLength = num * (8 / den); 
@@ -649,8 +649,13 @@ function insertNewLine() {
 function parseMeasureLength(cleanM) {
     if (cleanM === "") return 0;
 
-    // 臨時記号、オクターブ記号、末尾の付点「>」までを1つのトークンとして厳密に抽出
-    const tokens = cleanM.match(/(\(3|[\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?)/g);
+    // ★修正1: !tenuto! や !>! などの装飾記号を完全に除去し、「e」などの誤認を防ぐ
+    let processedM = cleanM.replace(/![^!]+!/g, "");
+
+    // ★修正2: 和音 [CEG]4 などを、全体の長さ(4)を基準にするためダミーの単一音符(C4)に変換する
+    processedM = processedM.replace(/\[[^\]]+\]([0-9/]*)/g, "C$1");
+
+    const tokens = processedM.match(/(\(3|[\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?)/g);
     let count = 0;
     let tupletCount = 0; 
 
@@ -662,34 +667,29 @@ function parseMeasureLength(cleanM) {
             return;
         }
 
-        // 末尾に付点マーク「>」があるかチェック
         const isDotted = t.endsWith('>');
         const cleanToken = isDotted ? t.slice(0, -1) : t;
 
-        let val = 1; // デフォルト（数字なしは8分音符 ＝ 1カウント）
+        let val = 1; 
 
-        // 各種パース用の正規表現マッチ
-        const fractionMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)\/(\d+)/); // 例: C3/2
-        const slashNumMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*\/(\d+)/);     // 例: C/2
-        const multiplierMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)/);    // 例: C2
+        const fractionMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)\/(\d+)/); 
+        const slashNumMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*\/(\d+)/);     
+        const multiplierMatch = cleanToken.match(/[\^_\=]*[a-gA-GzZ][',]*(\d+)/);    
 
-        // 正しい順序で安全に長さを評価
         if (fractionMatch) {
             val = parseInt(fractionMatch[1], 10) / parseInt(fractionMatch[2], 10);
         } else if (slashNumMatch) {
             val = 1 / parseInt(slashNumMatch[1], 10);
         } else if (cleanToken.includes('/') && !cleanToken.match(/\d/)) {
-            val = 0.5; // 数字なしのスラッシュ単体「/」は 0.5
+            val = 0.5; 
         } else if (multiplierMatch) {
             val = parseInt(multiplierMatch[1], 10);
         }
 
-        // 付点マーク「>」があれば長さを1.5倍にする
         if (isDotted) {
             val = val * 1.5;
         }
 
-        // 連符（3連符）の処理
         if (tupletCount > 0) {
             val = val * (2 / 3);
             tupletCount--;
