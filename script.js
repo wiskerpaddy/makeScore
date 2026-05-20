@@ -445,11 +445,6 @@ function addRest() {
     insertText("z" + dur);  
 }
 
-function addRest() {
-    const dur = document.querySelector('input[name="dur"]:checked').value;
-    insertText("z" + dur + " ");  // ★末尾に " " を追加
-}
-
 /**
  * 消去ボタン：末尾のトークンまたは小節線を安全に削除（カーソル位置完全保持版）
  */
@@ -761,16 +756,6 @@ function autoInsertMeasureLines(text) {
     }
     return newText.replace(/\|\|/g, '|');
 }
-
-// 既存の描画処理を行っている場所
-function updateScore() {
-    const abcText = document.getElementById('abc-input').value; // 実際のIDに合わせてください
-    currentAbcText = abcText; // グローバル変数に保存
-
-    // 既存の楽譜描画
-    ABCJS.renderAbc("notation", abcText, { /* オプション */ });
-}
-
 function saveAsMidi() {
     const rawValue = input.value.trim();
     if (rawValue === "") {
@@ -892,6 +877,20 @@ function setupFlickInput() {
             if (!isMoving) return;
             isMoving = false;
             
+            // ★ 追加: 要素の領域（BoundingClientRect）を取得し、
+            // 指を離した座標がボタンから離れすぎていたらキャンセル扱いにする
+            const rect = btn.getBoundingClientRect();
+            const padding = 50; // 50px以上外れたらキャンセル
+            if (
+                e.clientX < rect.left - padding || 
+                e.clientX > rect.right + padding || 
+                e.clientY < rect.top - padding || 
+                e.clientY > rect.bottom + padding
+            ) {
+                btn.releasePointerCapture(e.pointerId);
+                return; // 入力せずに終了
+            }
+                        
             const dx = e.clientX - startX;
             const dy = e.clientY - startY;
             
