@@ -684,7 +684,7 @@ function parseMeasureLength(cleanM) {
 }
 
 /**
- * 楽譜データを一切破壊せずに、拍数に合わせて小節線(|)を自動挿入する
+ * 楽譜データを一切破壊せずに、拍数に合わせて小節線(|)を自動挿入する（自動改行 撤廃版）
  */
 function autoInsertMeasureLines(text) {
     const [num, den] = scoreSettings.meter.split('/').map(Number);
@@ -692,41 +692,31 @@ function autoInsertMeasureLines(text) {
 
     let newText = "";
     let currentBeats = 0;
-    let measureCount = 0; // ★ 追加: 小節の数をカウントする変数
+    // ★ 修正: 小節をカウントして改行する処理（measureCount）を完全に削除しました
 
-    // ★ 追加: 手動の改行 (\n) も検知できるように正規表現に追加
-    const regex = /(![^!]+!)|(\[[^\]]+\][0-9/]*)|([\^_\=]*[a-gA-GzZ][',]*[0-9/]*)|(\|\]|\|)|(\n)|([\s\S])/g;
+    const regex = /((?:![^!]+!)*)(?:(\[[^\]]+\][0-9/]*)|([\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?))|(\|\]|\|)|(\n)|([\s\S])/g;
     
     let match;
     while ((match = regex.exec(text)) !== null) {
         const token = match[0];
 
         if (match[5]) { 
-            // 手動の改行があったらカウントをリセット
+            // ユーザーが手動で入れた改行 (\n) の場合はそのまま保持し、拍数をリセット
             newText += token;
-            measureCount = 0;
             currentBeats = 0;
         }
         else if (match[4]) {
+            // 既存の小節線がある場合もそのまま保持し、拍数をリセット
             newText += token;
             currentBeats = 0;
-            measureCount++;
-            // 4小節に達したら改行を入れる
-            if (measureCount >= 4) {
-                newText += "\n";
-                measureCount = 0;
-            }
         } 
         else if (match[2] || match[3]) {
+            // 音符の場合
             const beats = parseMeasureLength(token); 
+            
+            // 1小節分の拍数に達したら、改行せず「|」だけを挿入する
             if (currentBeats >= measureLength - 0.01) {
-                measureCount++;
-                if (measureCount >= 4) {
-                    newText += "|\n"; // ★ 4小節目なら改行付きで線を引く
-                    measureCount = 0;
-                } else {
-                    newText += "|";
-                }
+                newText += "|"; 
                 currentBeats = 0;
             }
             newText += token;
@@ -738,6 +728,7 @@ function autoInsertMeasureLines(text) {
     }
     return newText.replace(/\|\|/g, '|');
 }
+
 function saveAsMidi() {
     const rawValue = input.value.trim();
     if (rawValue === "") {
