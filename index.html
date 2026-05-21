@@ -30,73 +30,32 @@
     <h3>Jazz Score Editor</h3>
     <div id="paper"></div>
     <details>
-        <summary>各種書き方・サンプル集</summary>
+        <summary>①基本設定（拍数・音の長さ）</summary>
         <div class="help-content">
-        <p><strong>📖 基本記法チートシート</strong></p>
-        <ul style="padding-left: 20px; list-style-type: none;">
-            <li style="margin-bottom: 15px;">
-                <strong>曲線で結ぶ（スラー）の書き方:</strong>
-                <ul style="list-style-type: disc; padding-left: 20px; margin-top: 5px; color: #ccc; font-size: 0.85rem;">
-                    <li><code>(</code> ボタンを押す</li>
-                    <li>音符をいくつか入れる（例：<code>C D E</code>）</li>
-                    <li><code>)</code> ボタンを押す</li>
-                    <li>結果：<code>(C D E)</code> となり、音符が曲線で結ばれます。</li>
-                </ul>
-            </li>
-
-            <li>
-                <strong>同じ音を繋ぐ（タイ）の書き方:</strong>
-                <ul style="list-style-type: disc; padding-left: 20px; margin-top: 5px; color: #ccc; font-size: 0.85rem;">
-                    <li>1つ目の音符を入れる（例：<code>G2</code>）</li>
-                    <li><code>-</code> ボタンを押す</li>
-                    <li>2つ目の音符を入れる（例：<code>G4</code>）</li>
-                    <li>結果：<code>G2-G4</code> となり、音が結合されます。</li>
-                </ul>
-            </li>
-            <li>
-                <strong>シャープ（♯）、フラット（♭）、ナチュラル（♮）の臨時記号の書き方:</strong>
-                <ul style="list-style-type: disc; padding-left: 20px; margin-top: 5px; color: #ccc; font-size: 0.85rem;">
-                    <li>シャープ（♯）を入れる（例：<code>^</code>）</li>
-                    <li><code>ド</code> ボタンを押す</li>
-                    <li>結果：<code>^C = ド#</code> となり、音が結合されます。</li>
-                </ul>
-            </li>
-        </ul>
-        <p><strong>🎸 ジャズ・サンプル（タップで挿入）</strong></p>
-        <div class="sample-grid">
-            <button onclick="applySample('swing')">3連符練習</button>
-            <button onclick="applySample('basic_chord')">基本コード</button>
-            <!-- <button onclick="applySample('bossa')">ボサノバ風</button> -->
-        </div>
-        </div>
-    </details>
-
-    <div class="note-selector">
-        <details open><summary class="section-guide">∨【新規】基本設定（タップで詳細入力）</summary>
-        <div class="note-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 10px;">
-            <button onclick="updateScoreSetting('meter_custom', scoreSettings.meter)" style="background: #444;color: white;">
-                拍: <span id="ui-meter">4/4</span>
-            </button>
-            
-            <button onclick="updateScoreSetting('tempo_custom', scoreSettings.tempo)" style="background: #444;color: white;">
-                ♩=<span id="ui-tempo">130</span>
-            </button>
-            
-            <button id="swing-btn" onclick="updateScoreSetting('swing')" style="transition: 0.3s;">
-                Swing
-            </button>
-            <button id="sax-btn" onclick="updateScoreSetting('saxMode')" style="transition: 0.3s;">
-                サックスモード
-            </button>
-            <!-- <button onclick="checkRhythm()" class="btn-check" style="background: #e74c3c; color: white;">
-                チェック
-            </button>
-            <button onclick="deleteLast()" style="background: #e74c3c; color: white;">
-                消去
-            </button> -->
-        </div>
-        </details>
-        <details open> <summary class="section-guide" style="cursor: pointer;">∨ ① 音の長さを選ぶ</summary>
+            <div class="near-summary">拍数・モード設定（タップで詳細入力）</div>
+            <div class="note-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 10px;">
+                <button onclick="updateScoreSetting('meter_custom', scoreSettings.meter)" style="background: #444;color: white;">
+                    拍: <span id="ui-meter">4/4</span>
+                </button>
+                
+                <button onclick="updateScoreSetting('tempo_custom', scoreSettings.tempo)" style="background: #444;color: white;">
+                    ♩=<span id="ui-tempo">130</span>
+                </button>
+                
+                <button id="swing-btn" onclick="updateScoreSetting('swing')" style="transition: 0.3s;">
+                    Swing
+                </button>
+                <button id="sax-btn" onclick="updateScoreSetting('saxMode')" style="transition: 0.3s;">
+                    サックスモード
+                </button>
+                <!-- <button onclick="checkRhythm()" class="btn-check" style="background: #e74c3c; color: white;">
+                    チェック
+                </button>
+                <button onclick="deleteLast()" style="background: #e74c3c; color: white;">
+                    消去
+                </button> -->
+            </div>
+            <div class="near-summary">音の長さを選ぶ</div>
             <div class="duration-picker">
                 <label><input type="radio" name="dur" value="8"> 全音</label>
                 <label><input type="radio" name="dur" value="4"> 2分</label>
@@ -104,8 +63,10 @@
                 <label><input type="radio" name="dur" value="" > 8分</label>
                 <label><input type="radio" name="dur" value="/2"> 16分</label>
             </div>
-        </details>
+        </div>
+    </details>
 
+    <div class="note-selector">
         <details open>
         <summary class="section-guide" style="cursor: pointer;">
             <span>∨ ② 音符を入れる（2オクターブ）</span>
@@ -113,10 +74,10 @@
                 💡 フリック入力
             </span>
         </summary>
-<details id="flick-help" style="background: rgba(255,255,255,0.05); border: 1px dashed var(--brass); border-radius: 8px; margin: 0 0 10px 0; padding: 0;">
+        <details id="flick-help" style="background: rgba(255,255,255,0.05); border: 1px dashed var(--brass); border-radius: 8px; margin: 0 0 10px 0; padding: 0;">
             <summary style="display: none;"></summary> 
             <div style="padding: 10px; font-size: 0.85rem; color: #fff; line-height: 1.4;">
-                <div style="text-align: center; font-weight: bold; margin-bottom: 12px; color: var(--brass);">【 フリック操作ガイド 】</div>
+                <div style="text-align: center; font-weight: bold; margin-bottom: 12px; color: var(--brass);">【 フリック操作ガイド  】</div>
                 
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center;">
                     

@@ -44,12 +44,19 @@ details {
     border-radius: 8px;
     margin-bottom: 8px;
 }
-summary {
+summary{
     padding: 8px 12px;
     font-size: 0.85rem;
     color: var(--brass);
     font-weight: bold;
     cursor: pointer;
+}
+
+.near-summary {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: var(--brass);
+    font-weight: bold;
 }
 
 .sample-grid {
