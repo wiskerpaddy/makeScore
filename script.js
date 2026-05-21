@@ -139,17 +139,23 @@ function updateScoreSetting(key, value) {
 function insertText(text) {
     const start = input.selectionStart;
     const end = input.selectionEnd;
-    let textToInsert = text;
-
-    // テキストを挿入
-    input.setRangeText(textToInsert, start, end, "end");
-    const newPos = start + textToInsert.length;
     
-    // 描画処理を実行
-    render();
-
-    // ★ 修正: focus() は絶対に呼ばず、内部のカーソル位置情報だけを静かに更新する
+    // 現在のテキストを、カーソルの前と後ろで分割する
+    const val = input.value;
+    const before = val.substring(0, start);
+    const after = val.substring(end);
+    
+    // 値を更新する（※この瞬間、ブラウザの仕様でカーソルが末尾に吹っ飛びます）
+    input.value = before + text + after;
+    
+    // 挿入した文字の長さ分だけ、新しいカーソル位置を計算する
+    const newPos = start + text.length;
+    
+    // ★重要：強制的にカーソルを挿入直後の位置に引き戻す
     input.setSelectionRange(newPos, newPos);
+    
+    // 最後に楽譜を再描画
+    render();
 }
 
 /**
@@ -625,16 +631,12 @@ function insertNewLine() {
     }
 }
 
-/**
- * 小節の文字列から、正確な総カウント数(8分音符ベース)を計算する共通関数
- */
 function parseMeasureLength(cleanM) {
     if (cleanM === "") return 0;
 
-    // ★修正1: !tenuto! や !>! などの装飾記号を完全に除去し、「e」などの誤認を防ぐ
-    let processedM = cleanM.replace(/![^!]+!/g, "");
+    // ★ 修正: 装飾記号に加え、スタッカートのドット(.)も計算前にきれいに除去する
+    let processedM = cleanM.replace(/![^!]+!/g, "").replace(/\./g, "");
 
-    // ★修正2: 和音 [CEG]4 などを、全体の長さ(4)を基準にするためダミーの単一音符(C4)に変換する
     processedM = processedM.replace(/\[[^\]]+\]([0-9/]*)/g, "C$1");
 
     const tokens = processedM.match(/(\(3|[\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?)/g);
@@ -692,29 +694,25 @@ function autoInsertMeasureLines(text) {
 
     let newText = "";
     let currentBeats = 0;
-    // ★ 修正: 小節をカウントして改行する処理（measureCount）を完全に削除しました
 
-    const regex = /((?:![^!]+!)*)(?:(\[[^\]]+\][0-9/]*)|([\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?))|(\|\]|\|)|(\n)|([\s\S])/g;
+    // ★ 修正: 正規表現の先頭グループに \. を追加し、スタッカートを直後の音符と1つの塊にする
+    const regex = /((?:![^!]+!|\.)*)(?:(\[[^\]]+\][0-9/]*)|([\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?))|(\|\]|\|)|(\n)|([\s\S])/g;
     
     let match;
     while ((match = regex.exec(text)) !== null) {
         const token = match[0];
 
         if (match[5]) { 
-            // ユーザーが手動で入れた改行 (\n) の場合はそのまま保持し、拍数をリセット
             newText += token;
             currentBeats = 0;
         }
         else if (match[4]) {
-            // 既存の小節線がある場合もそのまま保持し、拍数をリセット
             newText += token;
             currentBeats = 0;
         } 
         else if (match[2] || match[3]) {
-            // 音符の場合
             const beats = parseMeasureLength(token); 
             
-            // 1小節分の拍数に達したら、改行せず「|」だけを挿入する
             if (currentBeats >= measureLength - 0.01) {
                 newText += "|"; 
                 currentBeats = 0;
@@ -879,7 +877,7 @@ function setupFlickInput() {
                     prefix = "!tenuto!"; // → Doo
                 } 
                 else if (angle >= 22.5 && angle < 67.5) {
-                    prefix = "!>!";      // ↘ Bah
+                    prefix = ".";        // ★修正: ↘ スタッカート
                 } 
                 else if (angle >= 67.5 && angle < 112.5) {
                     prefix = "_";        // ↓ ♭
@@ -928,3 +926,14 @@ function setupFlickInput() {
 document.addEventListener("DOMContentLoaded", () => {
     setupFlickInput();
 });
+
+function insertChord() {
+    const root = document.getElementById('chord-root').value;
+    const quality = document.getElementById('chord-quality').value;
+    
+    // ルートと種類を結合してABC記法の形にする（例：C + m7 = "Cm7"）
+    const chordVal = root + quality;
+    
+    insertText(`"${chordVal}"`);
+}
+
