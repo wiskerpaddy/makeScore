@@ -51,38 +51,36 @@ function transposeAbcTextForSax(abcText) {
 let currentVisualObj = null;
 
 /**
- * 楽譜をレンダリングする（完全合体版：元の処理は一切削っていません）
+ * 楽譜をレンダリングする
  */
 function render() {
     // スイング表記の構築
     const swingText = scoreSettings.swing ? '"Swing"' : ""; 
     
-    // ヘッダーを動的に生成
-    const dynamicHeader = `X:1\nM:${scoreSettings.meter}\nK:${scoreSettings.key} transpose=-12\nL:1/8\nQ:1/4=${scoreSettings.tempo} ${swingText}\n`;
+    // ★ 修正: 末尾に %%stretchlast 0 を追加し、ABCJSの勝手な横伸ばし（均等割り付け）を禁止する
+    const dynamicHeader = `X:1\nM:${scoreSettings.meter}\nK:${scoreSettings.key} transpose=-12\nL:1/8\nQ:1/4=${scoreSettings.tempo} ${swingText}\n%%stretchlast 0\n`;
     const fullAbc = dynamicHeader + input.value;
     
-    // ★【ここを修正】描画結果（配列）を変数 result に一度受け取ります
+    // 描画結果（配列）を変数 result に一度受け取ります
     const result = ABCJS.renderAbc("paper", fullAbc, {
         responsive: "resize",
         add_classes: true
     });
 
-    // ★【新しく追加】画面描画が成功していれば、その楽譜データをセーブしておく
+    // 画面描画が成功していれば、その楽譜データをセーブしておく
     if (result && result.length > 0) {
         currentVisualObj = result[0];
     }
 
-    // --- 以下、元々あったUI更新やボタンの見た目の処理を寸分違わぬまま100%継続 ---
+    // --- 以下、既存のUI更新処理 ---
     const swingBtn = document.getElementById('swing-btn');
     const saxBtn = document.getElementById('sax-btn');
     if (swingBtn) {
         if (scoreSettings.swing) {
-            // ONの時：真鍮ゴールド（目立つ色）
             swingBtn.style.background = "#d4af37";
             swingBtn.style.color = "#121417";
             swingBtn.innerText = "Swing: ON";
         } else {
-            // OFFの時：暗いグレー
             swingBtn.style.background = "#444";
             swingBtn.style.color = "#fff";
             swingBtn.innerText = "Swing: OFF";
@@ -90,28 +88,22 @@ function render() {
     }
     if (saxBtn) {
         if (scoreSettings.saxMode) {
-            // ONの時：真鍮ゴールド（目立つ色）
             saxBtn.style.background = "#d4af37";
             saxBtn.style.color = "#121417";
             saxBtn.innerText = "Sax: ON";
         } else {
-            // OFFの時：暗いグレー
             saxBtn.style.background = "#444";
             saxBtn.style.color = "#fff";
             saxBtn.innerText = "Sax: OFF";
         }
     }
 
-    // UIのテキスト更新（拍数やテンポも同期）
+    // UIのテキスト更新
     const meterDisplay = document.getElementById('ui-meter');
     if (meterDisplay) meterDisplay.innerText = scoreSettings.meter;
     
     const tempoDisplay = document.getElementById('ui-tempo');
     if (tempoDisplay) tempoDisplay.innerText = scoreSettings.tempo;
-    
-    // if (window.innerWidth < 600) {
-    //     document.getElementById('paper').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    // }
 }
 
 /**
@@ -192,8 +184,6 @@ function finalizeScore() {
 
     if (trimmed.endsWith("|")) {
         // 末尾がすでに小節線の場合は、最後に見つかった | を |] に置換する
-        // ※正規表現の $ は文字列の末尾を表すが、改行があるとうまく動かないため、
-        //   文字単位での最後の | を探して置換する
         const lastPipeIndex = trimmed.lastIndexOf('|');
         // trimmed の中身を使って置き換え、元の末尾の空白（改行など）を復元する
         newVal = trimmed.substring(0, lastPipeIndex) + "|]" + val.substring(trimmed.length);
@@ -852,16 +842,17 @@ function saveAsMidi() {
 }
 
 // ==========================================
-// ★ 音符ボタンのフリック入力拡張機能
-// ==========================================
-// ==========================================
-// ★ 音符ボタンのフリック入力拡張機能（8方向・斜め対応版）
+// ★ 音符ボタンのフリック入力拡張機能（完全版：付点・タイ対応）
 // ==========================================
 function setupFlickInput() {
     const noteButtons = document.querySelectorAll('.note-grid button[onclick^="addNote"]');
-    const threshold = 30; // フリックと判定する最低移動距離(ピクセル)
+    const threshold = 30; // フリック判定距離
 
     noteButtons.forEach(btn => {
+        // 重複登録を防止（念のためのバグ対策）
+        if (btn.getAttribute('data-flick-initialized') === "true") return;
+        btn.setAttribute('data-flick-initialized', "true");
+
         const onclickAttr = btn.getAttribute('onclick');
         const noteMatch = onclickAttr.match(/addNote\('([^']+)'\)/);
         if (!noteMatch) return;
@@ -870,9 +861,7 @@ function setupFlickInput() {
         btn.removeAttribute('onclick');
         btn.style.touchAction = "none";
         
-        let startX = 0;
-        let startY = 0;
-        let isMoving = false;
+        let startX = 0, startY = 0, isMoving = false;
 
         btn.addEventListener('pointerdown', (e) => {
             startX = e.clientX;
@@ -885,10 +874,9 @@ function setupFlickInput() {
             if (!isMoving) return;
             isMoving = false;
             
-            // ★ 追加: 要素の領域（BoundingClientRect）を取得し、
-            // 指を離した座標がボタンから離れすぎていたらキャンセル扱いにする
+            // キャンセル処理（ボタンから大きく外れたら無効）
             const rect = btn.getBoundingClientRect();
-            const padding = 50; // 50px以上外れたらキャンセル
+            const padding = 50; 
             if (
                 e.clientX < rect.left - padding || 
                 e.clientX > rect.right + padding || 
@@ -896,53 +884,61 @@ function setupFlickInput() {
                 e.clientY > rect.bottom + padding
             ) {
                 btn.releasePointerCapture(e.pointerId);
-                return; // 入力せずに終了
+                return; 
             }
-                        
+            
             const dx = e.clientX - startX;
             const dy = e.clientY - startY;
-            
-            // XとYの移動量から、直線距離を計算
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            let symbol = ""; 
+            let prefix = "";    // 音符の前につく記号（♯, Dooなど）
+            let postfix = "";   // 音符の後ろにつく記号（タイなど）
+            let isDotted = false;
             
             if (distance > threshold) {
-                // 角度を計算（Math.atan2は -180度 〜 180度 で返すので、扱いやすく 0 〜 360度 に変換）
                 let angle = Math.atan2(dy, dx) * 180 / Math.PI;
                 if (angle < 0) angle += 360;
 
-                // 8方向の判定（45度ずつ分割）
+                // 8方向のマッピング
                 if (angle >= 337.5 || angle < 22.5) {
-                    symbol = "!tenuto!"; // 右フリック（→）: テヌート
+                    prefix = "!tenuto!"; // → Doo
                 } 
                 else if (angle >= 22.5 && angle < 67.5) {
-                    symbol = "!>!";      // 右下フリック（↘）: アクセント
+                    prefix = "!>!";      // ↘ Bah
                 } 
                 else if (angle >= 67.5 && angle < 112.5) {
-                    symbol = "_";        // 下フリック（↓）: フラット
+                    prefix = "_";        // ↓ ♭
                 } 
                 else if (angle >= 112.5 && angle < 157.5) {
-                    symbol = "!>!";      // 左下フリック（↙）: アクセント
+                    postfix = "-";       // ↙ タイ
                 } 
                 else if (angle >= 157.5 && angle < 202.5) {
-                    symbol = "=";        // 左フリック（←）: ナチュラル
+                    prefix = "=";        // ← ♮
                 } 
                 else if (angle >= 202.5 && angle < 247.5) {
-                    symbol = "!>!";      // 左上フリック（↖）: アクセント
+                    isDotted = true;     // ↖ 付点
                 } 
                 else if (angle >= 247.5 && angle < 292.5) {
-                    symbol = "^";        // 上フリック（↑）: シャープ
+                    prefix = "^";        // ↑ ♯
                 } 
                 else if (angle >= 292.5 && angle < 337.5) {
-                    symbol = "!>!";      // 右上フリック（↗）: アクセント
+                    prefix = "!>!";      // ↗ Bah
                 }
             }
             
-            const dur = document.querySelector('input[name="dur"]:checked').value;
+            let dur = document.querySelector('input[name="dur"]:checked').value;
             
-            // 記号 + 音符 + 長さ の順で一気に挿入
-            insertText(symbol + baseNote + dur);
+            // ↖ 左上フリック（付点）の場合、選択中の長さを正確に1.5倍に変換する
+            if (isDotted) {
+                if (dur === "8") dur = "12";          // 全音 -> 付点全音
+                else if (dur === "4") dur = "6";      // 2分 -> 付点2分
+                else if (dur === "2") dur = "3";      // 4分 -> 付点4分
+                else if (dur === "") dur = "3/2";     // 8分 -> 付点8分
+                else if (dur === "/2") dur = "3/4";   // 16分 -> 付点16分
+            }
+            
+            // 最終的な文字列を組み合わせて挿入（例: ^ + C + 3 + -）
+            insertText(prefix + baseNote + dur + postfix);
             
             btn.releasePointerCapture(e.pointerId);
         });
