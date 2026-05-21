@@ -175,7 +175,7 @@ function addNote(note) {
 }
 
 /**
- * 最後の小節線を終止線（|]）に変換する（空白混入防止版）
+ * 最後の小節線を終止線（|]）に変換する（空白混入防止・改行対応版）
  */
 function finalizeScore() {
     let val = input.value; 
@@ -184,15 +184,23 @@ function finalizeScore() {
     const selectionStart = input.selectionStart;
     const selectionEnd = input.selectionEnd;
 
+    // 1. まず、過去に付与した終止線 |] をすべて通常の小節線 | に戻す
     let newVal = val.replace(/\|\]/g, "|");
+    
+    // 2. 末尾の空白や改行を取り除いた状態の「一番最後の文字」を判定
     const trimmed = newVal.trimEnd();
 
     if (trimmed.endsWith("|")) {
-        const lastPipeIndex = newVal.lastIndexOf('|');
-        newVal = newVal.substring(0, lastPipeIndex) + "|]" + newVal.substring(lastPipeIndex + 1);
+        // 末尾がすでに小節線の場合は、最後に見つかった | を |] に置換する
+        // ※正規表現の $ は文字列の末尾を表すが、改行があるとうまく動かないため、
+        //   文字単位での最後の | を探して置換する
+        const lastPipeIndex = trimmed.lastIndexOf('|');
+        // trimmed の中身を使って置き換え、元の末尾の空白（改行など）を復元する
+        newVal = trimmed.substring(0, lastPipeIndex) + "|]" + val.substring(trimmed.length);
     } else if (!trimmed.endsWith("|]")) {
-        // ★修正: 余計な空白を入れず、密着させて終止線を付与する
-        newVal = newVal.trimEnd() + "|]";
+        // 末尾が小節線でない場合は、純粋に |] を足す
+        // 元の末尾の空白（改行など）を保持したまま追加する
+        newVal = trimmed + "|]" + val.substring(trimmed.length);
     }
     
     input.value = newVal;
