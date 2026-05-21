@@ -136,27 +136,22 @@ function updateScoreSetting(key, value) {
     render();
 }
 
-/**
- * テキストエリアのカーソル位置に安全に文字を挿入する（スペース完全自動化＆カーソル固定版）
- */
 function insertText(text) {
     const start = input.selectionStart;
     const end = input.selectionEnd;
     let textToInsert = text;
 
-    const preventSpaceRegex = /^([\^_\=\(\)\-]|!.*!|>|\.)$/;
-    // （コメントアウト部分はそのまま）
-
+    // テキストを挿入
     input.setRangeText(textToInsert, start, end, "end");
-    
-    // ★ 追加: カーソルが先頭に飛ぶWebViewバグを強制ブロック
     const newPos = start + textToInsert.length;
-    input.setSelectionRange(newPos, newPos);
     
-    // input.focus(); // コメントアウトのまま
-
+    // 描画処理を実行
     render();
+
+    // ★ 修正: focus() は絶対に呼ばず、内部のカーソル位置情報だけを静かに更新する
+    input.setSelectionRange(newPos, newPos);
 }
+
 /**
  * 音符ボタン用の関数（空白を入れないように修正）
  */
@@ -443,40 +438,29 @@ function addRest() {
     insertText("z" + dur);  
 }
 
-/**
- * 消去ボタン：末尾のトークンまたは小節線を安全に削除（カーソル位置完全保持版）
- */
 function deleteLast() {
     let val = input.value;
     if (val.length === 0) return;
 
-    // ★ 1. 実行前のカーソル位置を記憶
     const selectionStart = input.selectionStart;
-    const selectionEnd = input.selectionEnd;
-
-    // 削除前のトリム状態を取得
     let trimmed = val.trimEnd();
+    const oldLength = val.length;
 
-    // ★ 終止線（|]）で終わっている場合は、まとめて削除できるように調整
     if (trimmed.endsWith("|]")) {
-        // 末尾の "|]" をごっそり削除
         val = trimmed.slice(0, -2);
     } else {
-        // 通常の1文字消去（またはスペースを考慮した消去）
         val = val.substring(0, val.length - 1);
     }
 
-    // ★ 2. テキストエリアを更新（ここでカーソルが先頭に飛ぶ）
     input.value = val;
-
-    // ★ 3. 削除された文字数を計算し、カーソル位置を正しくスライドさせて復元
-    // 基本は元の位置を維持ですが、末尾を消した場合はみ出さないように調整
-    const newCursorPos = Math.min(selectionStart, val.length);
-    
-    // input.focus();
-    input.setSelectionRange(newCursorPos, newCursorPos);
-
     render();
+
+    const deletedCount = oldLength - val.length;
+    let newCursorPos = selectionStart - deletedCount;
+    if (newCursorPos < 0) newCursorPos = 0;
+
+    // ★ 修正: ここも focus() は絶対に呼ばない
+    input.setSelectionRange(newCursorPos, newCursorPos);
 }
 
 /**
