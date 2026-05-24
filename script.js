@@ -634,8 +634,11 @@ function insertNewLine() {
 function parseMeasureLength(cleanM) {
     if (cleanM === "") return 0;
 
-    // ★ 修正: 装飾記号に加え、スタッカートのドット(.)も計算前にきれいに除去する
-    let processedM = cleanM.replace(/![^!]+!/g, "").replace(/\./g, "");
+    // ★ 修正1: ダブルクォーテーションで囲まれた文字列("C"や"Cm7"など)を計算前に完全に消去する
+    let processedM = cleanM.replace(/"[^"]*"/g, "");
+
+    // 装飾記号に加え、スタッカートのドット(.)も計算前にきれいに除去する
+    processedM = processedM.replace(/![^!]+!/g, "").replace(/\./g, "");
 
     processedM = processedM.replace(/\[[^\]]+\]([0-9/]*)/g, "C$1");
 
@@ -685,9 +688,6 @@ function parseMeasureLength(cleanM) {
     return count;
 }
 
-/**
- * 楽譜データを一切破壊せずに、拍数に合わせて小節線(|)を自動挿入する（自動改行 撤廃版）
- */
 function autoInsertMeasureLines(text) {
     const [num, den] = scoreSettings.meter.split('/').map(Number);
     const measureLength = num * (8 / den); 
@@ -695,32 +695,37 @@ function autoInsertMeasureLines(text) {
     let newText = "";
     let currentBeats = 0;
 
-    // ★ 修正: 正規表現の先頭グループに \. を追加し、スタッカートを直後の音符と1つの塊にする
-    const regex = /((?:![^!]+!|\.)*)(?:(\[[^\]]+\][0-9/]*)|([\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?))|(\|\]|\|)|(\n)|([\s\S])/g;
+    // ★ 修正2: 先頭に ("[^"]*") を追加し、コード文字列をキャプチャしてスルーさせる
+    const regex = /("[^"]*")|((?:![^!]+!|\.)*)(?:(\[[^\]]+\][0-9/]*)|([\^_\=]*[a-gA-GzZ][',]*[0-9/]*>?))|(\|\]|\|)|(\n)|([\s\S])/g;
     
     let match;
     while ((match = regex.exec(text)) !== null) {
         const token = match[0];
 
-        if (match[5]) { 
+        // 小節が満杯の処理（変更なし）
+        if (currentBeats >= measureLength - 0.01 && !token.match(/^\s+$/) && !match[5] && !match[6]) {
+            newText += "|"; 
+            currentBeats = 0;
+        }
+
+        // ★ 追加: コード文字列(match[1])が来たら、拍数を増やさずにそのままテキストに追加
+        if (match[1]) {
+            newText += token;
+        }
+        else if (match[6]) { // 改行
             newText += token;
             currentBeats = 0;
         }
-        else if (match[4]) {
+        else if (match[5]) { // 小節線
             newText += token;
             currentBeats = 0;
         } 
-        else if (match[2] || match[3]) {
+        else if (match[3] || match[4]) { // 音符や和音
             const beats = parseMeasureLength(token); 
-            
-            if (currentBeats >= measureLength - 0.01) {
-                newText += "|"; 
-                currentBeats = 0;
-            }
             newText += token;
             currentBeats += beats;
         } 
-        else {
+        else { // その他の文字（空白など）
             newText += token;
         }
     }
