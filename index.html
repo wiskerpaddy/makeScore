@@ -63,6 +63,32 @@
                 <label><input type="radio" name="dur" value="" > 8分</label>
                 <label><input type="radio" name="dur" value="/2"> 16分</label>
             </div>
+
+            <div class="score-controls" style="margin-bottom: 15px;">
+                <label for="keySelector" style="font-weight: bold; margin-right: 8px;">調号 (Key):</label>
+                <select id="keySelector" onchange="updateScoreSetting('key', this.value)" style="background: #121417; color: white; border: 1px solid #444; border-radius: 4px; padding: 8px; font-size: 1rem; outline: none;">
+                    <option value="C" selected>C / Am (調号なし)</option>
+                    <optgroup label="シャープ系 (♯)">
+                        <option value="G">G / Em (♯ ×1)</option>
+                        <option value="D">D / Bm (♯ ×2)</option>
+                        <option value="A">A / F#m (♯ ×3)</option>
+                        <option value="E">E / C#m (♯ ×4)</option>
+                        <option value="B">B / G#m (♯ ×5)</option>
+                        <option value="F#">F# / D#m (♯ ×6)</option>
+                        <option value="C#">C# / A#m (♯ ×7)</option>
+                    </optgroup>
+
+                    <optgroup label="フラット系 (♭)">
+                        <option value="F">F / Dm (♭ ×1)</option>
+                        <option value="Bb">Bb / Gm (♭ ×2)</option>
+                        <option value="Eb">Eb / Cm (♭ ×3)</option>
+                        <option value="Ab">Ab / Fm (♭ ×4)</option>
+                        <option value="Db">Db / Bbm (♭ ×5)</option>
+                        <option value="Gb">Gb / Ebm (♭ ×6)</option>
+                        <option value="Cb">Cb / Abm (♭ ×7)</option>
+                    </optgroup>
+                </select>
+            </div>
         </div>
     </details>
 
