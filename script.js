@@ -167,6 +167,60 @@ function addNote(note) {
     insertText(note + dur); 
 }
 
+function checkRhythm(isSilent = false) {
+    // 1. 小節線の自動補完
+    const autoFormattedText = autoInsertMeasureLines(input.value);
+    input.value = autoFormattedText;
+    
+    // 2. ★ 修正ポイント：拍数エラーの判定前に、絶対に終止線を綺麗にする処理を強制実行する
+    finalizeScore();
+    
+    // 3. 画面に描画
+    render();
+
+    // ここから下はリズム（拍数）のチェック処理
+    const text = input.value;
+    const lines = text.split('\n');
+    const [num, den] = scoreSettings.meter.split('/').map(Number);
+    const measureLength = num * (8 / den); 
+
+    let feedback = [];
+    lines.forEach((line, index) => {
+        if (line.includes(':') || line.trim() === "" || line.startsWith('%')) return;
+
+        const normalizedLine = line.replace(/\|\]/g, "|");
+        const measures = normalizedLine.split('|');
+
+        measures.forEach((m, i) => {
+            const cleanM = m.trim();
+            if (cleanM === "" || (i === measures.length - 1 && cleanM === "")) return;
+
+            const count = parseMeasureLength(cleanM);
+
+            if (count > 0 && Math.abs(count - measureLength) > 0.01) {
+                const diff = count - measureLength;
+                const beatDiff = Math.abs(diff / 2);
+                const formattedBeat = Number(beatDiff.toFixed(2)).toString(); 
+                
+                const status = diff > 0 ? `${formattedBeat}拍多い` : `${formattedBeat}拍足りない`;
+                feedback.push(`${index + 1}行目・第${i + 1}小節: ${status}`);
+            }
+        });
+    });
+
+    if (feedback.length > 0) {
+        const fullMsg = `【リズムのズレがあります（設定: ${scoreSettings.meter}）】\n\n` + feedback.join('\n');
+        if (!isSilent) alert(fullMsg);
+        return { ok: false, msg: fullMsg };
+    }
+
+    if (!isSilent) {
+        alert(`リズムチェックOK！（${scoreSettings.meter}）`);
+    }
+
+    return { ok: true };
+}
+
 /**
  * 最後の小節線を終止線（|]）に変換する（空白混入防止・改行対応版）
  */
@@ -177,7 +231,7 @@ function finalizeScore() {
     const selectionStart = input.selectionStart;
     const selectionEnd = input.selectionEnd;
 
-    // 1. まず、過去に付与した終止線 |] をすべて通常の小節線 | に戻す
+    // 1. まず、過去に付与した終止線 |] をすべて通常の小節線 | に戻す（ここで中間線が消える）
     let newVal = val.replace(/\|\]/g, "|");
     
     // 2. 末尾の空白や改行を取り除いた状態の「一番最後の文字」を判定
@@ -186,17 +240,14 @@ function finalizeScore() {
     if (trimmed.endsWith("|")) {
         // 末尾がすでに小節線の場合は、最後に見つかった | を |] に置換する
         const lastPipeIndex = trimmed.lastIndexOf('|');
-        // trimmed の中身を使って置き換え、元の末尾の空白（改行など）を復元する
-        newVal = trimmed.substring(0, lastPipeIndex) + "|]" + val.substring(trimmed.length);
+        newVal = trimmed.substring(0, lastPipeIndex) + "|]" + newVal.substring(trimmed.length);
     } else if (!trimmed.endsWith("|]")) {
         // 末尾が小節線でない場合は、純粋に |] を足す
-        // 元の末尾の空白（改行など）を保持したまま追加する
-        newVal = trimmed + "|]" + val.substring(trimmed.length);
+        newVal = trimmed + "|]" + newVal.substring(trimmed.length);
     }
     
     input.value = newVal;
     input.setSelectionRange(selectionStart, selectionEnd);
-    render();
 }
 
 /**
@@ -235,70 +286,6 @@ function getNoteLength(noteStr) {
     }
 
     return length;
-}
-
-/**
- * 拍数・小節チェック（テキストを破壊しない安全バージョン）
- */
-function checkRhythm(isSilent = false) {
-    // ★ 修正: 楽譜データを破壊してしまう「小節線の自動補完（テキスト上書き）」を無効化します
-    const autoFormattedText = autoInsertMeasureLines(input.value);
-    input.value = autoFormattedText;
-    render();
-
-    // チェック実行前のカーソル位置を記憶
-    const selectionStart = input.selectionStart;
-    const selectionEnd = input.selectionEnd;
-
-    const text = input.value;
-    const lines = text.split('\n');
-    
-    const [num, den] = scoreSettings.meter.split('/').map(Number);
-    const measureLength = num * (8 / den); 
-
-    let feedback = [];
-    lines.forEach((line, index) => {
-        if (line.includes(':') || line.trim() === "" || line.startsWith('%')) return;
-
-        const normalizedLine = line.replace(/\|\]/g, "|");
-        const measures = normalizedLine.split('|');
-
-        measures.forEach((m, i) => {
-            const cleanM = m.trim();
-            if (cleanM === "" || (i === measures.length - 1 && cleanM === "")) return;
-
-            // 共通関数を使って1小節の長さを取得
-            const count = parseMeasureLength(cleanM);
-
-            if (count > 0 && Math.abs(count - measureLength) > 0.01) {
-                const diff = count - measureLength;
-                const beatDiff = Math.abs(diff / 2);
-                const formattedBeat = Number(beatDiff.toFixed(2)).toString(); 
-                
-                const status = diff > 0 ? `${formattedBeat}拍多い` : `${formattedBeat}拍足りない`;
-                feedback.push(`${index + 1}行目・第${i + 1}小節: ${status}`);
-            }
-        });
-    });
-
-    if (feedback.length > 0) {
-        const fullMsg = `【リズムのズレがあります（設定: ${scoreSettings.meter}）】\n\n` + feedback.join('\n');
-        if (!isSilent) alert(fullMsg);
-        
-        input.setSelectionRange(selectionStart, selectionEnd);
-        return { ok: false, msg: fullMsg };
-    }
-
-    // 綺麗に終止線を付与（これもスペースが入らないように修正しました）
-    finalizeScore();
-    
-    if (!isSilent) {
-        alert(`リズムチェックOK！（${scoreSettings.meter}）`);
-    }
-
-    input.setSelectionRange(selectionStart, selectionEnd);
-
-    return { ok: true };
 }
 
 // イベントリスナー
